@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blood-Sky Predator: Cosmic Gothic</title>
+    <title>Blood-Sky: Golden Storm</title>
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
         <div id="menu">
-            <h1>BLOOD-SKY PREDATOR</h1>
-            <p style="color: #ff3300; font-weight: bold;">COSMIC WINTER</p>
+            <h1>STORM PREDATOR</h1>
+            <p style="color: #ff3300; font-weight: bold;">THUNDER & GOLD EDITION</p>
             <hr style="border: 1px solid #600;">
-            <p>Double-Tap to Strike</p>
             <button onclick="startGame('easy')">EASY</button>
             <button onclick="startGame('medium')">MEDIUM</button>
             <button onclick="startGame('hard')">HARD</button>
@@ -27,6 +26,9 @@
 
         <canvas id="gameCanvas"></canvas>
         <div id="score-board">SCORE: 0</div>
+        <div id="power-timer-container">
+            <div id="power-timer-bar"></div>
+        </div>
     </div>
     <script src="game.js"></script>
 </body>

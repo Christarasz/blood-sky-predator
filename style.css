@@ -5,8 +5,7 @@ body {
 }
 #game-container {
     position: relative; width: 100vw; height: 100vh;
-    /* Deep space red gradient */
-    background: linear-gradient(#4b0000 0%, #990000 30%, #1a1a2e 70%, #0a0a0a 100%);
+    background: linear-gradient(#660000 0%, #990000 20%, #1a1a2e 50%, #2d4c1e 85%, #1a3312 100%);
     display: flex; justify-content: center; align-items: center;
 }
 #gameCanvas { display: block; background: transparent; transition: transform 0.05s; }
@@ -14,6 +13,7 @@ body {
     position: absolute; z-index: 10; text-align: center;
     background: rgba(10, 10, 20, 0.95); color: #e0e0e0; padding: 25px;
     border-radius: 15px; border: 3px double #cc0000; width: 260px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
 }
 h1 { margin: 0; color: #cc0000; font-size: 22px; text-shadow: 0 0 10px #ff0000; }
 button {
@@ -22,6 +22,5 @@ button {
     background: #600; color: white; border: none; border-radius: 5px;
 }
 #score-board {
-    position: absolute; top: 15px; left: 15px;
-    font-size: 20px; font-weight: bold; color: #fff;
+    position: absolute; top: 15px; left: 15px; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000;
 }

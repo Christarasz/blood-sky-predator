@@ -3,31 +3,29 @@ const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score-board');
 const killSound = document.getElementById('eagleSound');
 
-let gameActive = false;
-let score = 0;
+let gameActive = false, score = 0, frameCount = 0;
 let highScore = localStorage.getItem('predatorHighScore') || 0;
-let lastTap = 0;
-let frameCount = 0;
-let dragons = [], snow = [], castles = [], birds = [];
+let lastTap = 0, dragons = [], snow = [], castles = [], birds = [];
 
+// SHRUNKEN SIZES
 const eagle = {
-    x: 80, y: 0, w: 50, h: 40,
-    gravity: 0.38, lift: -7.8, velocity: 0,
+    x: 50, y: 0, w: 35, h: 28, // Smaller Eagle
+    gravity: 0.35, lift: -7.2, velocity: 0,
     isAttacking: false, attackTimer: 0
 };
 
 const levels = {
-    easy: { spawnRate: 110, dragonSpeed: 3, fireFreq: 0.015 },
-    medium: { spawnRate: 80, dragonSpeed: 5.5, fireFreq: 0.035 },
-    hard: { spawnRate: 55, dragonSpeed: 8.5, fireFreq: 0.07 }
+    easy: { spawnRate: 120, dragonSpeed: 2.5, fireFreq: 0.01 },
+    medium: { spawnRate: 90, dragonSpeed: 4.5, fireFreq: 0.025 },
+    hard: { spawnRate: 65, dragonSpeed: 7, fireFreq: 0.05 }
 };
 
 function initWorld() {
     snow = []; castles = []; birds = [];
-    for(let i=0; i<60; i++) snow.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*3+1, v: Math.random()*1.5+0.5});
-    for(let i=0; i<4; i++) birds.push({x: Math.random()*canvas.width, y: Math.random()*150+30, s: Math.random()*0.5+0.3, size: Math.random()*10+15});
-    castles.push({ icon: "🏰", x: 200, y: 0.85, s: 0.2, size: 160, knight: "💂" });
-    castles.push({ icon: "🏯", x: 900, y: 0.88, s: 0.4, size: 120, knight: "🛡️" });
+    for(let i=0; i<50; i++) snow.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2+1, v: Math.random()*1+0.5});
+    for(let i=0; i<3; i++) birds.push({x: Math.random()*canvas.width, y: Math.random()*100+20, s: Math.random()*0.4+0.2, size: 15});
+    castles.push({ icon: "🏰", x: 100, y: 0.85, s: 0.15, size: 120, knight: "💂" });
+    castles.push({ icon: "🏯", x: 600, y: 0.88, s: 0.3, size: 90, knight: "🛡️" });
 }
 
 function resize() {
@@ -41,8 +39,8 @@ const handleInput = (e) => {
     if (!gameActive) return;
     if (e.cancelable) e.preventDefault();
     const now = Date.now();
-    if (now - lastTap < 250) { 
-        eagle.isAttacking = true; eagle.attackTimer = 25;
+    if (now - lastTap < 220) { 
+        eagle.isAttacking = true; eagle.attackTimer = 20;
     } else { eagle.velocity = eagle.lift; }
     lastTap = now;
 };
@@ -52,6 +50,9 @@ window.addEventListener('keydown', (e) => { if (e.code === 'Space') handleInput(
 canvas.addEventListener('touchstart', handleInput, {passive: false});
 
 function startGame(lvl) {
+    // Mobile Audio Unlock
+    killSound.play().then(() => { killSound.pause(); killSound.currentTime = 0; }).catch(()=>{});
+    
     difficulty = lvl;
     document.getElementById('menu').style.display = 'none';
     document.getElementById('game-over').style.display = 'none';
@@ -67,37 +68,39 @@ function update() {
     if (eagle.y + eagle.h > canvas.height || eagle.y < 0) gameOver();
 
     if (frameCount % levels[difficulty].spawnRate === 0) {
-        dragons.push({ x: canvas.width, y: Math.random()*(canvas.height-250)+50, w: 80, h: 70, isFiring: false, fireTimer: 0 });
+        dragons.push({ x: canvas.width, y: Math.random()*(canvas.height-200)+50, w: 50, h: 45, isFiring: false, fireTimer: 0 });
     }
 
     dragons.forEach((d, i) => {
         d.x -= levels[difficulty].dragonSpeed;
-        if (!d.isFiring && Math.random() < levels[difficulty].fireFreq) { d.isFiring = true; d.fireTimer = 55; }
+        if (!d.isFiring && Math.random() < levels[difficulty].fireFreq) { d.isFiring = true; d.fireTimer = 45; }
         if (d.isFiring) d.fireTimer--; if (d.fireTimer <= 0) d.isFiring = false;
 
-        let strikeMult = 3.5;
-        let effectiveH = eagle.isAttacking ? eagle.h * strikeMult : eagle.h;
-        let eagleTop = eagle.y - (effectiveH - eagle.h)/2;
-        let eagleBottom = eagle.y + eagle.h + (effectiveH - eagle.h)/2;
+        let strikeScale = 2.8;
+        let effH = eagle.isAttacking ? eagle.h * strikeScale : eagle.h;
+        let eT = eagle.y - (effH - eagle.h)/2;
+        let eB = eagle.y + eagle.h + (effH - eagle.h)/2;
 
-        const hitBody = eagle.x < d.x + d.w && eagle.x + eagle.w > d.x && eagleTop < d.y + d.h && eagleBottom > d.y;
-        const hitFlame = d.isFiring && eagle.x + eagle.w > d.x - 180 && eagle.x < d.x && eagleTop < d.y + d.h && eagleBottom > d.y;
+        const hitBody = eagle.x < d.x + d.w && eagle.x + eagle.w > d.x && eT < d.y + d.h && eB > d.y;
+        
+        // FLAME OPTIMIZATION: Much shorter reach (100px)
+        const flameReach = 100;
+        const hitFlame = d.isFiring && eagle.x + eagle.w > d.x - flameReach && eagle.x < d.x && eT < d.y + d.h && eB > d.y;
 
         if (hitFlame) gameOver();
         else if (hitBody) {
             if (eagle.isAttacking) { 
                 dragons.splice(i, 1); score += 250;
-                // Addictive Feedback
                 killSound.currentTime = 0; killSound.play().catch(()=>{});
-                if (navigator.vibrate) navigator.vibrate(100);
-                canvas.style.transform = "translate(8px, 8px)";
-                setTimeout(() => canvas.style.transform = "translate(0,0)", 70);
+                if (navigator.vibrate) navigator.vibrate(80);
+                canvas.style.transform = "translate(5px, 5px)";
+                setTimeout(() => canvas.style.transform = "translate(0,0)", 50);
             } else gameOver();
         }
         if (d.x + d.w < 0) { dragons.splice(i, 1); score += 10; }
     });
 
-    birds.forEach(b => { b.x -= b.s; if (b.x < -50) b.x = canvas.width + 50; });
+    birds.forEach(b => { b.x -= 0.5; if (b.x < -30) b.x = canvas.width + 30; });
     castles.forEach(c => { c.x -= c.s; if (c.x + c.size < 0) c.x = canvas.width + 100; });
     snow.forEach(p => { p.y += p.v; if (p.y > canvas.height) p.y = -10; });
     scoreElement.innerText = `SCORE: ${score}`;
@@ -106,32 +109,32 @@ function update() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Background Items
     ctx.globalAlpha = 0.4;
     castles.forEach(c => {
         ctx.font = `${c.size}px serif`; ctx.fillText(c.icon, c.x, canvas.height * c.y);
-        ctx.font = "35px serif"; ctx.fillText(c.knight, c.x + c.size/2.5, canvas.height * c.y + 25);
+        ctx.font = "25px serif"; ctx.fillText(c.knight, c.x + c.size/3, canvas.height * c.y + 20);
     });
     ctx.globalAlpha = 0.3;
     birds.forEach(b => { ctx.font = `${b.size}px serif`; ctx.fillText("🕊️", b.x, b.y); });
     ctx.globalAlpha = 1.0;
-    // Snow
     ctx.fillStyle = "white";
     snow.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill(); });
+
     // Eagle
     ctx.save(); ctx.translate(eagle.x + eagle.w/2, eagle.y + eagle.h/2);
-    ctx.scale(-1, eagle.isAttacking ? 3.5 : 1.0);
-    if(eagle.isAttacking) { ctx.shadowBlur = 40; ctx.shadowColor = "gold"; }
-    ctx.font = "50px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.scale(-1, eagle.isAttacking ? 2.8 : 1.0);
+    if(eagle.isAttacking) { ctx.shadowBlur = 20; ctx.shadowColor = "gold"; }
+    ctx.font = "35px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("🦅", 0, 0); ctx.restore();
+
     // Dragons
     dragons.forEach(d => {
-        ctx.font = "75px serif"; ctx.fillText("🐉", d.x, d.y + d.h);
+        ctx.font = "50px serif"; ctx.fillText("🐉", d.x, d.y + d.h);
         if (d.isFiring) {
-            ctx.save(); ctx.translate(d.x, d.y + d.h - 20);
-            let flick = 4.8 + Math.sin(frameCount * 0.8) * 0.8;
-            ctx.scale(flick, 1.4); ctx.font = "35px serif"; ctx.textAlign = "right";
-            ctx.shadowBlur = 25; ctx.shadowColor = "red"; ctx.fillText("🔥", 0, 0); ctx.restore();
+            ctx.save(); ctx.translate(d.x, d.y + d.h - 15);
+            let flick = 2.5 + Math.sin(frameCount * 0.8) * 0.5; // Smaller fire flicker
+            ctx.scale(flick, 1.2); ctx.font = "20px serif"; ctx.textAlign = "right";
+            ctx.shadowBlur = 10; ctx.shadowColor = "red"; ctx.fillText("🔥", 0, 0); ctx.restore();
         }
     });
 }
@@ -142,7 +145,6 @@ function gameOver() {
     gameActive = false;
     if (score > highScore) { highScore = score; localStorage.setItem('predatorHighScore', highScore); }
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('status-text').innerText = score >= highScore && score > 0 ? "NEW RECORD!" : "PREDATOR FALLEN";
     document.getElementById('final-score-display').innerText = `SCORE: ${score} (BEST: ${highScore})`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }

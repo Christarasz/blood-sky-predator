@@ -11,19 +11,17 @@ body {
 #gameCanvas { display: block; background: transparent; transition: transform 0.05s; }
 #menu, #game-over {
     position: absolute; z-index: 10; text-align: center;
-    background: rgba(20, 20, 30, 0.95); color: #e0e0e0; padding: 30px;
-    border-radius: 15px; border: 3px double #600;
-    box-shadow: 0 0 50px rgba(0,0,0,0.9);
+    background: rgba(20, 20, 30, 0.95); color: #e0e0e0; padding: 25px;
+    border-radius: 15px; border: 3px double #600; width: 260px;
 }
-h1 { margin: 0; color: #cc0000; font-size: 28px; text-shadow: 2px 2px 5px #000; }
+h1 { margin: 0; color: #cc0000; font-size: 22px; }
 button {
-    display: block; width: 220px; margin: 12px auto; padding: 15px;
+    display: block; width: 100%; margin: 12px auto; padding: 12px;
     font-size: 18px; font-weight: bold; cursor: pointer; font-family: 'MedievalSharp', cursive;
     background: #600; color: white; border: none; border-radius: 5px;
 }
-button:active { transform: scale(0.95); background: #900; }
 #score-board {
-    position: absolute; top: 20px; left: 20px;
-    font-size: 28px; font-weight: bold; color: #fff;
+    position: absolute; top: 15px; left: 15px;
+    font-size: 20px; font-weight: bold; color: #fff;
     text-shadow: 2px 2px 4px #000;
 }

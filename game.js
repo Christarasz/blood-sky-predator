@@ -1,9 +1,11 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score-board');
+const killSound = document.getElementById('eagleSound');
 
 let gameActive = false;
 let score = 0;
+let highScore = localStorage.getItem('predatorHighScore') || 0;
 let lastTap = 0;
 let frameCount = 0;
 let dragons = [], snow = [], castles = [], birds = [];
@@ -22,18 +24,14 @@ const levels = {
 
 function initWorld() {
     snow = []; castles = []; birds = [];
-    // Snowflakes
-    for(let i=0; i<70; i++) snow.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*3+1, v: Math.random()*1.5+0.5});
-    // Parallax Castles & Guards
+    for(let i=0; i<60; i++) snow.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*3+1, v: Math.random()*1.5+0.5});
+    for(let i=0; i<4; i++) birds.push({x: Math.random()*canvas.width, y: Math.random()*150+30, s: Math.random()*0.5+0.3, size: Math.random()*10+15});
     castles.push({ icon: "🏰", x: 200, y: 0.85, s: 0.2, size: 160, knight: "💂" });
-    castles.push({ icon: "🏯", x: 800, y: 0.88, s: 0.4, size: 120, knight: "🛡️" });
-    // Ambient Birds
-    for(let i=0; i<4; i++) birds.push({x: Math.random()*canvas.width, y: Math.random()*120+40, s: Math.random()*0.4+0.2, size: 25});
+    castles.push({ icon: "🏯", x: 900, y: 0.88, s: 0.4, size: 120, knight: "🛡️" });
 }
 
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     initWorld();
 }
 window.addEventListener('resize', resize);
@@ -56,6 +54,7 @@ canvas.addEventListener('touchstart', handleInput, {passive: false});
 function startGame(lvl) {
     difficulty = lvl;
     document.getElementById('menu').style.display = 'none';
+    document.getElementById('game-over').style.display = 'none';
     gameActive = true; score = 0; dragons = [];
     eagle.y = canvas.height / 2; eagle.velocity = 0;
     animate();
@@ -76,7 +75,8 @@ function update() {
         if (!d.isFiring && Math.random() < levels[difficulty].fireFreq) { d.isFiring = true; d.fireTimer = 55; }
         if (d.isFiring) d.fireTimer--; if (d.fireTimer <= 0) d.isFiring = false;
 
-        let effectiveH = eagle.isAttacking ? eagle.h * 3.5 : eagle.h;
+        let strikeMult = 3.5;
+        let effectiveH = eagle.isAttacking ? eagle.h * strikeMult : eagle.h;
         let eagleTop = eagle.y - (effectiveH - eagle.h)/2;
         let eagleBottom = eagle.y + eagle.h + (effectiveH - eagle.h)/2;
 
@@ -86,10 +86,12 @@ function update() {
         if (hitFlame) gameOver();
         else if (hitBody) {
             if (eagle.isAttacking) { 
-                dragons.splice(i, 1); score += 250; 
-                canvas.style.transform = "translate(5px, 5px)"; // Shake
-                setTimeout(() => canvas.style.transform = "translate(0,0)", 50);
-                if (navigator.vibrate) navigator.vibrate(60); 
+                dragons.splice(i, 1); score += 250;
+                // Addictive Feedback
+                killSound.currentTime = 0; killSound.play().catch(()=>{});
+                if (navigator.vibrate) navigator.vibrate(100);
+                canvas.style.transform = "translate(8px, 8px)";
+                setTimeout(() => canvas.style.transform = "translate(0,0)", 70);
             } else gameOver();
         }
         if (d.x + d.w < 0) { dragons.splice(i, 1); score += 10; }
@@ -104,35 +106,32 @@ function update() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // 1. Castles & Knights
+    // Background Items
     ctx.globalAlpha = 0.4;
     castles.forEach(c => {
         ctx.font = `${c.size}px serif`; ctx.fillText(c.icon, c.x, canvas.height * c.y);
         ctx.font = "35px serif"; ctx.fillText(c.knight, c.x + c.size/2.5, canvas.height * c.y + 25);
     });
-    // 2. Ambient Birds
     ctx.globalAlpha = 0.3;
     birds.forEach(b => { ctx.font = `${b.size}px serif`; ctx.fillText("🕊️", b.x, b.y); });
     ctx.globalAlpha = 1.0;
-    // 3. Snow
+    // Snow
     ctx.fillStyle = "white";
     snow.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill(); });
-    // 4. Eagle
-    ctx.save();
-    ctx.translate(eagle.x + eagle.w/2, eagle.y + eagle.h/2);
+    // Eagle
+    ctx.save(); ctx.translate(eagle.x + eagle.w/2, eagle.y + eagle.h/2);
     ctx.scale(-1, eagle.isAttacking ? 3.5 : 1.0);
     if(eagle.isAttacking) { ctx.shadowBlur = 40; ctx.shadowColor = "gold"; }
     ctx.font = "50px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("🦅", 0, 0);
-    ctx.restore();
-    // 5. Dragons & Fire
+    ctx.fillText("🦅", 0, 0); ctx.restore();
+    // Dragons
     dragons.forEach(d => {
         ctx.font = "75px serif"; ctx.fillText("🐉", d.x, d.y + d.h);
         if (d.isFiring) {
             ctx.save(); ctx.translate(d.x, d.y + d.h - 20);
-            let flick = 4.5 + Math.sin(frameCount * 0.8) * 0.8;
+            let flick = 4.8 + Math.sin(frameCount * 0.8) * 0.8;
             ctx.scale(flick, 1.4); ctx.font = "35px serif"; ctx.textAlign = "right";
-            ctx.shadowBlur = 20; ctx.shadowColor = "red"; ctx.fillText("🔥", 0, 0); ctx.restore();
+            ctx.shadowBlur = 25; ctx.shadowColor = "red"; ctx.fillText("🔥", 0, 0); ctx.restore();
         }
     });
 }
@@ -141,6 +140,9 @@ function animate() { if (!gameActive) return; update(); draw(); requestAnimation
 
 function gameOver() {
     gameActive = false;
+    if (score > highScore) { highScore = score; localStorage.setItem('predatorHighScore', highScore); }
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('final-score').innerText = score;
+    document.getElementById('status-text').innerText = score >= highScore && score > 0 ? "NEW RECORD!" : "PREDATOR FALLEN";
+    document.getElementById('final-score-display').innerText = `SCORE: ${score} (BEST: ${highScore})`;
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Blood-Sky Predator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="menu">
+            <h1>BLOOD-SKY PREDATOR</h1>
+            <p style="color: #ff3300; font-weight: bold; letter-spacing: 1px;">GOTHIC WINTER STRIKE</p>
+            <hr style="border: 1px solid #600;">
+            <p>Tap/Space: Fly | Double-Tap: Strike</p>
+            <button onclick="startGame('easy')">EASY</button>
+            <button onclick="startGame('medium')">MEDIUM</button>
+            <button onclick="startGame('hard')">HARD</button>
+        </div>
+
+        <div id="game-over" style="display: none;">
+            <h2 id="status-text">PREDATOR FALLEN</h2>
+            <p>FINAL SCORE: <span id="final-score">0</span></p>
+            <button onclick="location.reload()">RETRY</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        <div id="score-board">SCORE: 0</div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

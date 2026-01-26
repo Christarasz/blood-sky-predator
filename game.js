@@ -107,6 +107,7 @@ let phaseTimer = 0, currentPhase = 'pipes';
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
 let buildings = [], snow = [], planets = [], thunders = [];
+let swords = [];
 
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
@@ -120,9 +121,9 @@ const levelDistances = [
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 110, enemySpawnRate: 120, speed: 2.5, fireFreq: 0.005, maxEnemies: 2 }, 
-    medium: { obstacleSpawnRate: 95, enemySpawnRate: 100, speed: 3.5, fireFreq: 0.01, maxEnemies: 3 }, 
-    hard: { obstacleSpawnRate: 80, enemySpawnRate: 80, speed: 4.5, fireFreq: 0.018, maxEnemies: 4 } 
+    easy: { obstacleSpawnRate: 75, enemySpawnRate: 100, speed: 2.5, fireFreq: 0.005, maxEnemies: 3, swordSpawnRate: 150 }, 
+    medium: { obstacleSpawnRate: 65, enemySpawnRate: 85, speed: 3.5, fireFreq: 0.01, maxEnemies: 4, swordSpawnRate: 120 }, 
+    hard: { obstacleSpawnRate: 55, enemySpawnRate: 70, speed: 4.5, fireFreq: 0.018, maxEnemies: 5, swordSpawnRate: 100 } 
 };
 
 let difficulty = 'medium';
@@ -265,6 +266,7 @@ function startGameFromLevel(lvl, level) {
     
     dragons = []; toothFairies = []; teeth = [];
     chimneyObstacles = []; thunders = [];
+    swords = [];
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -397,6 +399,35 @@ function update() {
         }
     }
     
+    // Spawn swords during enemies phase
+    if (currentPhase === 'enemies' && frameCount % config.swordSpawnRate === 0) {
+        swords.push({
+            x: canvas.width,
+            y: 80 + Math.random() * (canvas.height - 160),
+            size: 16,
+            rotation: Math.random() * Math.PI * 2,
+            rotationSpeed: 0.1 + Math.random() * 0.1
+        });
+    }
+    
+    swords.forEach((sword, i) => {
+        sword.x -= config.speed;
+        sword.rotation += sword.rotationSpeed;
+        
+        // Collision detection with eagle
+        const dist = Math.hypot(eagle.x + eagle.w/2 - sword.x, eagle.y + eagle.h/2 - sword.y);
+        if (dist < sword.size + 10) {
+            if (eagle.isAttacking) {
+                swords.splice(i, 1);
+                playEagleScreech();
+            } else {
+                gameOver();
+            }
+        }
+        
+        if (sword.x < -50) swords.splice(i, 1);
+    });
+    
     dragons.forEach((d, i) => {
         d.x -= config.speed;
         d.wingFlap += 0.15;
@@ -445,16 +476,18 @@ function update() {
             if (fairy.y > canvas.height - 100) { fairy.y = canvas.height - 100; fairy.verticalSpeed *= -1; }
         }
         
-        // Shoot only single tooth horizontally
+        // Shoot line of teeth horizontally (5 teeth in a horizontal line)
         if (fairy.shootTimer <= 0 && fairy.x < canvas.width - 100) {
-            teeth.push({
-                x: fairy.x,
-                y: fairy.y + 20,
-                vx: -6,
-                vy: 0,
-                spin: 0,
-                spinSpeed: 0.2
-            });
+            for (let j = 0; j < 5; j++) {
+                teeth.push({
+                    x: fairy.x - (j * 25),
+                    y: fairy.y + 20,
+                    vx: -6,
+                    vy: 0,
+                    spin: 0,
+                    spinSpeed: 0.2
+                });
+            }
             fairy.shootTimer = 70;
         }
         
@@ -582,6 +615,19 @@ function draw() {
         ctx.beginPath(); 
         ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); 
         ctx.fill(); 
+    });
+    
+    // Draw swords
+    swords.forEach(sword => {
+        ctx.save();
+        ctx.translate(sword.x, sword.y);
+        ctx.rotate(sword.rotation);
+        ctx.fillStyle = "#8B0000";
+        ctx.font = `${sword.size}px serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("🗡️", 0, 0);
+        ctx.restore();
     });
     
     // Draw RED eagle with addictive glow effect

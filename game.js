@@ -19,7 +19,6 @@ function stopBackgroundMusic() {
 function playBackgroundMusic() {
     if (!musicPlaying) return;
     
-    // Mario Bros style adventurous melody
     const melody = [
         {freq: 659.25, dur: 0.15}, // E5
         {freq: 659.25, dur: 0.15}, // E5
@@ -106,7 +105,7 @@ let currentLevel = 1;
 let phaseTimer = 0, currentPhase = 'pipes';
 
 let dragons = [], toothFairies = [], teeth = [];
-let spaceshipObstacles = [];
+let chimneyObstacles = [];
 let buildings = [], snow = [], planets = [], thunders = [];
 
 const eagle = { 
@@ -121,9 +120,9 @@ const levelDistances = [
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 110, enemySpawnRate: 180, speed: 2.5, fireFreq: 0.005 }, 
-    medium: { obstacleSpawnRate: 95, enemySpawnRate: 160, speed: 3.5, fireFreq: 0.01 }, 
-    hard: { obstacleSpawnRate: 80, enemySpawnRate: 140, speed: 4.5, fireFreq: 0.018 } 
+    easy: { obstacleSpawnRate: 110, enemySpawnRate: 120, speed: 2.5, fireFreq: 0.005, maxEnemies: 2 }, 
+    medium: { obstacleSpawnRate: 95, enemySpawnRate: 100, speed: 3.5, fireFreq: 0.01, maxEnemies: 3 }, 
+    hard: { obstacleSpawnRate: 80, enemySpawnRate: 80, speed: 4.5, fireFreq: 0.018, maxEnemies: 4 } 
 };
 
 let difficulty = 'medium';
@@ -167,7 +166,6 @@ function initWorld() {
 function getMaxUnlockedLevel() {
     const saved = localStorage.getItem('maxUnlockedLevel');
     if (!saved || saved === null || saved === 'null') {
-        localStorage.setItem('maxUnlockedLevel', '1');
         return 1;
     }
     return parseInt(saved);
@@ -266,7 +264,7 @@ function startGameFromLevel(lvl, level) {
     currentPhase = 'pipes';
     
     dragons = []; toothFairies = []; teeth = [];
-    spaceshipObstacles = []; thunders = [];
+    chimneyObstacles = []; thunders = [];
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -289,6 +287,7 @@ function update() {
         if (eagle.attackTimer <= 0) eagle.isAttacking = false; 
     }
     
+    // Bottom collision only - can touch the sky
     if (eagle.y + eagle.h > canvas.height) gameOver();
     if (eagle.y < 0) eagle.y = 0;
     
@@ -330,56 +329,43 @@ function update() {
         if (t.life <= 0) thunders.splice(i, 1);
     });
     
+    // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
         const gapSize = 220;
         const gapStart = 100 + Math.random() * (canvas.height - gapSize - 200);
         
-        const topShips = [];
-        const numTopShips = Math.floor(gapStart / 45);
-        for(let i = 0; i < numTopShips; i++) {
-            topShips.push({ y: i * 45, size: 38 });
-        }
-        
-        const bottomShips = [];
-        const numBottomShips = Math.floor((canvas.height - gapStart - gapSize) / 45);
-        for(let i = 0; i < numBottomShips; i++) {
-            bottomShips.push({ y: gapStart + gapSize + (i * 45), size: 38 });
-        }
-        
-        spaceshipObstacles.push({
+        chimneyObstacles.push({
             x: canvas.width,
-            topShips: topShips,
-            bottomShips: bottomShips
+            gapStart: gapStart,
+            gapSize: gapSize,
+            width: 50
         });
     }
     
-    spaceshipObstacles.forEach((obstacle, i) => {
-        obstacle.x -= config.speed;
+    chimneyObstacles.forEach((chimney, i) => {
+        chimney.x -= config.speed;
         
-        obstacle.topShips.forEach(ship => {
-            if (eagle.x + eagle.w > obstacle.x - 15 && eagle.x < obstacle.x + 35 &&
-                eagle.y < ship.y + ship.size) {
+        // Collision detection
+        if (eagle.x + eagle.w > chimney.x && eagle.x < chimney.x + chimney.width) {
+            // Hit top chimney
+            if (eagle.y < chimney.gapStart) {
                 gameOver();
             }
-        });
-        
-        obstacle.bottomShips.forEach(ship => {
-            if (eagle.x + eagle.w > obstacle.x - 15 && eagle.x < obstacle.x + 35 &&
-                eagle.y + eagle.h > ship.y) {
+            // Hit bottom chimney
+            if (eagle.y + eagle.h > chimney.gapStart + chimney.gapSize) {
                 gameOver();
             }
-        });
+        }
         
-        if (obstacle.x < -100) spaceshipObstacles.splice(i, 1);
+        if (chimney.x < -100) chimneyObstacles.splice(i, 1);
     });
     
-    // ONLY dragons and tooth fairies, MAX 2 enemies vertically at a time
+    // Spawn enemies during enemies phase - more balanced density
     if (currentPhase === 'enemies' && frameCount % config.enemySpawnRate === 0) {
-        // Check current enemies on screen vertically
         const allEnemies = [...dragons, ...toothFairies];
         
-        // Only spawn if we have less than 2 enemies currently
-        if (allEnemies.length < 2) {
+        // Allow multiple enemies but not too many
+        if (allEnemies.length < config.maxEnemies) {
             const enemyType = Math.random();
             const yPos = 80 + Math.random() * (canvas.height - 180);
             
@@ -391,7 +377,9 @@ function update() {
                     h: 50, 
                     isFiring: false, 
                     fireTimer: 0, 
-                    wingFlap: 0 
+                    wingFlap: 0,
+                    moveVertical: Math.random() > 0.3,
+                    verticalSpeed: (Math.random() - 0.5) * 2
                 });
             } else {
                 toothFairies.push({ 
@@ -401,7 +389,9 @@ function update() {
                     h: 40, 
                     shootTimer: 50, 
                     wingFlap: 0, 
-                    wingSpeed: 0.25 
+                    wingSpeed: 0.25,
+                    moveVertical: Math.random() > 0.3,
+                    verticalSpeed: (Math.random() - 0.5) * 1.5
                 });
             }
         }
@@ -410,6 +400,13 @@ function update() {
     dragons.forEach((d, i) => {
         d.x -= config.speed;
         d.wingFlap += 0.15;
+        
+        // Horizontal movement
+        if (d.moveVertical) {
+            d.y += d.verticalSpeed;
+            if (d.y < 50) { d.y = 50; d.verticalSpeed *= -1; }
+            if (d.y > canvas.height - 100) { d.y = canvas.height - 100; d.verticalSpeed *= -1; }
+        }
         
         if (!d.isFiring && Math.random() < config.fireFreq) { 
             d.isFiring = true; 
@@ -441,17 +438,23 @@ function update() {
         fairy.wingFlap += fairy.wingSpeed;
         fairy.shootTimer--;
         
+        // Horizontal movement
+        if (fairy.moveVertical) {
+            fairy.y += fairy.verticalSpeed;
+            if (fairy.y < 50) { fairy.y = 50; fairy.verticalSpeed *= -1; }
+            if (fairy.y > canvas.height - 100) { fairy.y = canvas.height - 100; fairy.verticalSpeed *= -1; }
+        }
+        
+        // Shoot only single tooth horizontally
         if (fairy.shootTimer <= 0 && fairy.x < canvas.width - 100) {
-            for(let t = 0; t < 5; t++) {
-                teeth.push({
-                    x: fairy.x,
-                    y: fairy.y + 20 + (t - 2) * 15,
-                    vx: -6,
-                    vy: 0,
-                    spin: 0,
-                    spinSpeed: 0.2
-                });
-            }
+            teeth.push({
+                x: fairy.x,
+                y: fairy.y + 20,
+                vx: -6,
+                vy: 0,
+                spin: 0,
+                spinSpeed: 0.2
+            });
             fairy.shootTimer = 70;
         }
         
@@ -529,16 +532,49 @@ function draw() {
     });
     ctx.globalAlpha = 1.0;
     
-    spaceshipObstacles.forEach(obstacle => {
-        obstacle.topShips.forEach(ship => {
-            ctx.font = ship.size + "px serif";
-            ctx.fillText("🚀", obstacle.x, ship.y + ship.size);
-        });
+    // Draw chimneys
+    chimneyObstacles.forEach(chimney => {
+        const topHeight = chimney.gapStart;
+        const bottomY = chimney.gapStart + chimney.gapSize;
+        const bottomHeight = canvas.height - bottomY;
         
-        obstacle.bottomShips.forEach(ship => {
-            ctx.font = ship.size + "px serif";
-            ctx.fillText("🚀", obstacle.x, ship.y + ship.size);
-        });
+        // Top chimney
+        if (topHeight > 0) {
+            ctx.fillStyle = "#8B4513";
+            ctx.fillRect(chimney.x, 0, chimney.width, topHeight);
+            
+            // Brick pattern
+            ctx.strokeStyle = "#654321";
+            ctx.lineWidth = 2;
+            for(let y = 0; y < topHeight; y += 15) {
+                for(let x = 0; x < chimney.width; x += 25) {
+                    ctx.strokeRect(chimney.x + x, y, 25, 15);
+                }
+            }
+            
+            // Chimney cap
+            ctx.fillStyle = "#654321";
+            ctx.fillRect(chimney.x - 5, topHeight - 10, chimney.width + 10, 10);
+        }
+        
+        // Bottom chimney
+        if (bottomHeight > 0) {
+            ctx.fillStyle = "#8B4513";
+            ctx.fillRect(chimney.x, bottomY, chimney.width, bottomHeight);
+            
+            // Brick pattern
+            ctx.strokeStyle = "#654321";
+            ctx.lineWidth = 2;
+            for(let y = bottomY; y < canvas.height; y += 15) {
+                for(let x = 0; x < chimney.width; x += 25) {
+                    ctx.strokeRect(chimney.x + x, y, 25, 15);
+                }
+            }
+            
+            // Chimney cap
+            ctx.fillStyle = "#654321";
+            ctx.fillRect(chimney.x - 5, bottomY, chimney.width + 10, 10);
+        }
     });
     
     ctx.fillStyle = "white";
@@ -548,13 +584,22 @@ function draw() {
         ctx.fill(); 
     });
     
+    // Draw RED eagle with addictive glow effect
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
     ctx.scale(-1, eagle.isAttacking ? 2.5 : 1.0);
+    
+    // Red glow effect
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "red";
+    
     if(eagle.isAttacking) { 
-        ctx.shadowBlur = 15; 
-        ctx.shadowColor = "gold"; 
+        ctx.shadowBlur = 25; 
+        ctx.shadowColor = "crimson"; 
     }
+    
+    // Draw red eagle
+    ctx.filter = 'hue-rotate(320deg) saturate(2)';
     ctx.font = "24px serif"; 
     ctx.textAlign = "center"; 
     ctx.textBaseline = "middle";
@@ -614,7 +659,7 @@ function animate() {
 
 function gameOver() {
     gameActive = false;
-    stopBackgroundMusic();  // STOP MUSIC ON GAME OVER
+    stopBackgroundMusic();
     document.getElementById('game-over').style.display = 'block';
     document.getElementById('final-score-display').innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | LEVEL: ${currentLevel}`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);

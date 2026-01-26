@@ -18,6 +18,11 @@
 <button onclick="startGame('medium')">MEDIUM</button>
 <button onclick="startGame('hard')">HARD</button>
 </div>
+<div id="level-select" style="display: none;">
+<h1>SELECT LEVEL</h1>
+<div id="levels-grid"></div>
+<button onclick="backToMenu()">BACK</button>
+</div>
 <div id="game-over" style="display: none;">
 <h2 id="status-text">PREDATOR FALLEN</h2>
 <p id="final-score-display">DISTANCE: 0m | TIME: 0s</p>
@@ -25,6 +30,7 @@
 </div>
 <canvas id="gameCanvas"></canvas>
 <div id="score-board">DISTANCE: 0m | TIME: 0s</div>
+<div id="level-display">LEVEL: 1</div>
 </div>
 <script src="game.js"></script>
 </body>

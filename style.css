@@ -11,7 +11,6 @@ body {
     position: relative; 
     width: 100vw; 
     height: 100vh;
-    /* Sky blue to green like Flappy Bird */
     background: linear-gradient(
         #4EC0CA 0%, 
         #4EC0CA 70%, 
@@ -29,7 +28,7 @@ body {
     transition: transform 0.05s; 
 }
 
-#menu, #game-over {
+#menu, #game-over, #level-select {
     position: absolute; 
     z-index: 10; 
     text-align: center;
@@ -40,6 +39,39 @@ body {
     border: 3px double #cc0000; 
     width: 260px;
     box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#levels-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.level-button {
+    padding: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: 'MedievalSharp', cursive;
+    background: #005f73;
+    color: white;
+    border: 2px solid #0a9396;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.level-button:hover:not(.locked) {
+    background: #0a9396;
+}
+
+.level-button.locked {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+    border-color: #555;
 }
 
 h1 { 
@@ -83,6 +115,16 @@ button:hover {
     position: absolute; 
     top: 15px; 
     left: 15px; 
+    font-size: 20px; 
+    font-weight: bold; 
+    color: #fff; 
+    text-shadow: 2px 2px 4px #000;
+}
+
+#level-display {
+    position: absolute; 
+    top: 15px; 
+    right: 15px; 
     font-size: 20px; 
     font-weight: bold; 
     color: #fff; 

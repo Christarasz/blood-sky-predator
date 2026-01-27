@@ -99,6 +99,37 @@ function playLevelUpSound() {
     osc.stop(audioCtx.currentTime + 0.3);
 }
 
+function playGameOverSound() {
+    const notes = [
+        {freq: 523, time: 0, dur: 0.15},      // C
+        {freq: 494, time: 0.15, dur: 0.15},   // B
+        {freq: 466, time: 0.3, dur: 0.15},    // Bb
+        {freq: 440, time: 0.45, dur: 0.15},   // A
+        {freq: 392, time: 0.6, dur: 0.15},    // G
+        {freq: 349, time: 0.75, dur: 0.15},   // F
+        {freq: 330, time: 0.9, dur: 0.3},     // E
+        {freq: 262, time: 1.2, dur: 0.5}      // Low C (dramatic end)
+    ];
+    
+    notes.forEach(note => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'square';
+        osc.frequency.value = note.freq;
+        
+        const startTime = audioCtx.currentTime + note.time;
+        gain.gain.setValueAtTime(0.2, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + note.dur);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + note.dur);
+    });
+}
+
 let gameActive = false, frameCount = 0, distance = 0, time = 0;
 let lastTap = 0, isHoldingTap = false;
 let currentLevel = 1;
@@ -121,9 +152,9 @@ const levelDistances = [
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 75, enemySpawnRate: 100, speed: 2.5, fireFreq: 0.005, maxEnemies: 3, swordSpawnRate: 150 }, 
-    medium: { obstacleSpawnRate: 65, enemySpawnRate: 85, speed: 3.5, fireFreq: 0.01, maxEnemies: 4, swordSpawnRate: 120 }, 
-    hard: { obstacleSpawnRate: 55, enemySpawnRate: 70, speed: 4.5, fireFreq: 0.018, maxEnemies: 5, swordSpawnRate: 100 } 
+    easy: { obstacleSpawnRate: 50, enemySpawnRate: 80, speed: 2.5, fireFreq: 0.005, maxEnemies: 4, swordSpawnRate: 90 }, 
+    medium: { obstacleSpawnRate: 45, enemySpawnRate: 70, speed: 3.5, fireFreq: 0.01, maxEnemies: 5, swordSpawnRate: 75 }, 
+    hard: { obstacleSpawnRate: 40, enemySpawnRate: 60, speed: 4.5, fireFreq: 0.018, maxEnemies: 6, swordSpawnRate: 60 } 
 };
 
 let difficulty = 'medium';
@@ -151,15 +182,42 @@ function initWorld() {
         });
     }
     
-    ["🪐", "🌑", "☄️", "🔴"].forEach((icon, i) => {
+    // More and bigger planets
+    ["🪐", "🌑", "☄️", "🔴", "🌕", "⭐", "✨"].forEach((icon, i) => {
         planets.push({ 
             icon, 
             centerX: Math.random() * canvas.width, 
-            centerY: Math.random() * (canvas.height * 0.25), 
+            centerY: Math.random() * (canvas.height * 0.3), 
             angle: Math.random() * Math.PI * 2, 
-            radius: 40 + (i * 35), 
+            radius: 50 + (i * 40), 
+            speed: 0.0008 + (i * 0.0004), 
+            size: 30 + (i * 10) 
+        });
+    });
+    
+    // Add spaceships
+    ["🛸", "🚀", "🛰️"].forEach((icon, i) => {
+        planets.push({ 
+            icon, 
+            centerX: Math.random() * canvas.width, 
+            centerY: Math.random() * (canvas.height * 0.35), 
+            angle: Math.random() * Math.PI * 2, 
+            radius: 60 + (i * 45), 
+            speed: 0.0012 + (i * 0.0006), 
+            size: 28 + (i * 8) 
+        });
+    });
+    
+    // Add astronauts
+    ["🧑‍🚀", "👨‍🚀", "👩‍🚀"].forEach((icon, i) => {
+        planets.push({ 
+            icon, 
+            centerX: Math.random() * canvas.width, 
+            centerY: Math.random() * (canvas.height * 0.4), 
+            angle: Math.random() * Math.PI * 2, 
+            radius: 70 + (i * 50), 
             speed: 0.001 + (i * 0.0005), 
-            size: 20 + (i * 8) 
+            size: 26 + (i * 6) 
         });
     });
 }
@@ -333,8 +391,8 @@ function update() {
     
     // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
-        const gapSize = 220;
-        const gapStart = 100 + Math.random() * (canvas.height - gapSize - 200);
+        const gapSize = 200;
+        const gapStart = 120 + Math.random() * (canvas.height - gapSize - 240);
         
         chimneyObstacles.push({
             x: canvas.width,
@@ -379,9 +437,7 @@ function update() {
                     h: 50, 
                     isFiring: false, 
                     fireTimer: 0, 
-                    wingFlap: 0,
-                    moveVertical: Math.random() > 0.3,
-                    verticalSpeed: (Math.random() - 0.5) * 2
+                    wingFlap: 0
                 });
             } else {
                 toothFairies.push({ 
@@ -391,9 +447,7 @@ function update() {
                     h: 40, 
                     shootTimer: 50, 
                     wingFlap: 0, 
-                    wingSpeed: 0.25,
-                    moveVertical: Math.random() > 0.3,
-                    verticalSpeed: (Math.random() - 0.5) * 1.5
+                    wingSpeed: 0.25
                 });
             }
         }
@@ -404,9 +458,9 @@ function update() {
         swords.push({
             x: canvas.width,
             y: 80 + Math.random() * (canvas.height - 160),
-            size: 16,
+            size: 32,
             rotation: Math.random() * Math.PI * 2,
-            rotationSpeed: 0.1 + Math.random() * 0.1
+            rotationSpeed: 0.15 + Math.random() * 0.1
         });
     }
     
@@ -416,7 +470,7 @@ function update() {
         
         // Collision detection with eagle
         const dist = Math.hypot(eagle.x + eagle.w/2 - sword.x, eagle.y + eagle.h/2 - sword.y);
-        if (dist < sword.size + 10) {
+        if (dist < sword.size + 12) {
             if (eagle.isAttacking) {
                 swords.splice(i, 1);
                 playEagleScreech();
@@ -431,13 +485,6 @@ function update() {
     dragons.forEach((d, i) => {
         d.x -= config.speed;
         d.wingFlap += 0.15;
-        
-        // Horizontal movement
-        if (d.moveVertical) {
-            d.y += d.verticalSpeed;
-            if (d.y < 50) { d.y = 50; d.verticalSpeed *= -1; }
-            if (d.y > canvas.height - 100) { d.y = canvas.height - 100; d.verticalSpeed *= -1; }
-        }
         
         if (!d.isFiring && Math.random() < config.fireFreq) { 
             d.isFiring = true; 
@@ -468,13 +515,6 @@ function update() {
         fairy.x -= config.speed;
         fairy.wingFlap += fairy.wingSpeed;
         fairy.shootTimer--;
-        
-        // Horizontal movement
-        if (fairy.moveVertical) {
-            fairy.y += fairy.verticalSpeed;
-            if (fairy.y < 50) { fairy.y = 50; fairy.verticalSpeed *= -1; }
-            if (fairy.y > canvas.height - 100) { fairy.y = canvas.height - 100; fairy.verticalSpeed *= -1; }
-        }
         
         // Shoot line of teeth horizontally (5 teeth in a horizontal line)
         if (fairy.shootTimer <= 0 && fairy.x < canvas.width - 100) {
@@ -539,7 +579,7 @@ function draw() {
         ctx.stroke();
     });
     
-    ctx.globalAlpha = 0.4;
+    ctx.globalAlpha = 0.3;
     planets.forEach(p => {
         let x = p.centerX + Math.cos(p.angle) * p.radius;
         let y = p.centerY + Math.sin(p.angle) * p.radius;
@@ -622,11 +662,16 @@ function draw() {
         ctx.save();
         ctx.translate(sword.x, sword.y);
         ctx.rotate(sword.rotation);
-        ctx.fillStyle = "#8B0000";
+        
+        // Red glow effect like Star Wars lightsaber
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "#FF0000";
+        ctx.fillStyle = "#FF0000";
         ctx.font = `${sword.size}px serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("🗡️", 0, 0);
+        
         ctx.restore();
     });
     
@@ -706,6 +751,7 @@ function animate() {
 function gameOver() {
     gameActive = false;
     stopBackgroundMusic();
+    playGameOverSound();
     document.getElementById('game-over').style.display = 'block';
     document.getElementById('final-score-display').innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | LEVEL: ${currentLevel}`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);

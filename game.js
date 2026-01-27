@@ -207,19 +207,6 @@ function initWorld() {
             size: 28 + (i * 8) 
         });
     });
-    
-    // Add astronauts
-    ["🧑‍🚀", "👨‍🚀", "👩‍🚀"].forEach((icon, i) => {
-        planets.push({ 
-            icon, 
-            centerX: Math.random() * canvas.width, 
-            centerY: Math.random() * (canvas.height * 0.4), 
-            angle: Math.random() * Math.PI * 2, 
-            radius: 70 + (i * 50), 
-            speed: 0.001 + (i * 0.0005), 
-            size: 26 + (i * 6) 
-        });
-    });
 }
 
 function getMaxUnlockedLevel() {

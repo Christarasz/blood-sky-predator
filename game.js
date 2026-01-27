@@ -449,7 +449,7 @@ function update() {
     
     // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
-        const gapSize = 200;
+        const gapSize = 180; // Reduced from 200 to make more challenging for smaller bird
         
         let gapStart;
         if (lastChimneyGapStart === null) {
@@ -458,9 +458,9 @@ function update() {
         } else {
             // Subsequent chimneys - gradual change like Flappy Bird
             // Allow movement up or down, but limit the change to avoid steep slopes
-            const maxChange = 80; // Maximum vertical change between pipes
-            const minGap = 120; // Minimum distance from top
-            const maxGap = canvas.height - gapSize - 120; // Maximum distance from bottom
+            const maxChange = 70; // Increased from 60 for more challenge
+            const minGap = 80; // Reduced padding for tighter spaces
+            const maxGap = canvas.height - gapSize - 80; // Reduced padding
             
             // Random change within allowed range
             const change = (Math.random() - 0.5) * 2 * maxChange;
@@ -900,6 +900,7 @@ function draw() {
     // Draw FANCY HORIZONTAL BIRD with gold framework (small/no wings)
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
+    ctx.scale(0.75, 0.75); // Make bird smaller
     
     // Golden framework glow
     ctx.shadowBlur = 35;

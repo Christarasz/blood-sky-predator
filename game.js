@@ -134,14 +134,16 @@ let gameActive = false, frameCount = 0, distance = 0, time = 0;
 let lastTap = 0, isHoldingTap = false;
 let currentLevel = 1;
 let phaseTimer = 0, currentPhase = 'pipes';
+let nextPipeSpawn = 0;
 
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
 let buildings = [], snow = [], planets = [], thunders = [];
 let swords = [];
+let trees = [];
 
 const eagle = { 
-    x: 100, y: 0, w: 24, h: 20,
+    x: 100, y: 0, w: 20, h: 16,
     gravity: 0.3, lift: -6, velocity: 0, 
     isAttacking: false, attackTimer: 0 
 };
@@ -152,9 +154,9 @@ const levelDistances = [
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 50, enemySpawnRate: 80, speed: 2.5, fireFreq: 0.005, maxEnemies: 4, swordSpawnRate: 90 }, 
-    medium: { obstacleSpawnRate: 45, enemySpawnRate: 70, speed: 3.5, fireFreq: 0.01, maxEnemies: 5, swordSpawnRate: 75 }, 
-    hard: { obstacleSpawnRate: 40, enemySpawnRate: 60, speed: 4.5, fireFreq: 0.018, maxEnemies: 6, swordSpawnRate: 60 } 
+    easy: { obstacleSpawnRate: [45, 55], enemySpawnRate: 80, speed: 2.5, fireFreq: 0.005, maxEnemies: 4, swordSpawnRate: 90 }, 
+    medium: { obstacleSpawnRate: [40, 50], enemySpawnRate: 70, speed: 3.5, fireFreq: 0.01, maxEnemies: 5, swordSpawnRate: 75 }, 
+    hard: { obstacleSpawnRate: [35, 45], enemySpawnRate: 60, speed: 4.5, fireFreq: 0.018, maxEnemies: 6, swordSpawnRate: 60 } 
 };
 
 let difficulty = 'medium';
@@ -162,7 +164,7 @@ let difficulty = 'medium';
 let lastChimneyGapStart = null;
 
 function initWorld() {
-    snow = []; buildings = []; planets = [];
+    snow = []; buildings = []; planets = []; trees = [];
     
     for(let i = 0; i < 150; i++) {
         snow.push({
@@ -182,6 +184,17 @@ function initWorld() {
             y: canvas.height - height - 50,
             width: 55,
             height: height
+        });
+    }
+    
+    // Add trees in front of buildings
+    const treeCount = Math.ceil(canvas.width / 50);
+    for(let i = 0; i < treeCount; i++) {
+        const treeHeight = 40 + Math.random() * 30;
+        trees.push({
+            x: i * 50 + Math.random() * 20,
+            y: canvas.height - treeHeight - 50,
+            height: treeHeight
         });
     }
     
@@ -215,6 +228,7 @@ function initWorld() {
 function getMaxUnlockedLevel() {
     const saved = localStorage.getItem('maxUnlockedLevel');
     if (!saved || saved === null || saved === 'null') {
+        localStorage.setItem('maxUnlockedLevel', '1');
         return 1;
     }
     return parseInt(saved);
@@ -313,11 +327,16 @@ function startGameFromLevel(lvl, level) {
     currentPhase = 'pipes';
     lastChimneyGapStart = null;
     
+    const config = levels[difficulty];
+    nextPipeSpawn = Math.floor(Math.random() * (config.obstacleSpawnRate[1] - config.obstacleSpawnRate[0]) + config.obstacleSpawnRate[0]);
+    
     dragons = []; toothFairies = []; teeth = [];
     chimneyObstacles = []; thunders = [];
     swords = [];
     
-    eagle.y = canvas.height / 2; 
+    // Set eagle starting position based on level
+    const levelOffset = ((level - 1) % 10) * (canvas.height * 0.08);
+    eagle.y = canvas.height / 2 + levelOffset - (canvas.height * 0.4); 
     eagle.velocity = 0;
     
     animate();
@@ -381,8 +400,8 @@ function update() {
     });
     
     // Spawn chimneys during pipes phase
-    if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
-        const gapSize = 200;
+    if (currentPhase === 'pipes' && frameCount % nextPipeSpawn === 0) {
+        const gapSize = 190;
         
         let gapStart;
         if (lastChimneyGapStart === null) {
@@ -411,6 +430,9 @@ function update() {
         });
         
         lastChimneyGapStart = gapStart;
+        
+        // Set next pipe spawn with variable timing
+        nextPipeSpawn = Math.floor(Math.random() * (config.obstacleSpawnRate[1] - config.obstacleSpawnRate[0]) + config.obstacleSpawnRate[0]);
     }
     
     chimneyObstacles.forEach((chimney, i) => {
@@ -616,6 +638,14 @@ function draw() {
     });
     ctx.globalAlpha = 1.0;
     
+    // Draw trees
+    ctx.globalAlpha = 0.6;
+    trees.forEach(t => {
+        ctx.font = `${t.height}px serif`;
+        ctx.fillText("🌲", t.x, canvas.height - 50);
+    });
+    ctx.globalAlpha = 1.0;
+    
     // Draw chimneys
     chimneyObstacles.forEach(chimney => {
         const topHeight = chimney.gapStart;
@@ -691,23 +721,23 @@ function draw() {
         ctx.restore();
     });
     
-    // Draw RED eagle with addictive glow effect
+    // Draw SHINING GREEN eagle with gold framework
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
     ctx.scale(-1, eagle.isAttacking ? 2.5 : 1.0);
     
-    // Red glow effect
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "red";
+    // Gold framework glow
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = "gold";
     
     if(eagle.isAttacking) { 
-        ctx.shadowBlur = 25; 
-        ctx.shadowColor = "crimson"; 
+        ctx.shadowBlur = 40; 
+        ctx.shadowColor = "#FFD700"; 
     }
     
-    // Draw red eagle
-    ctx.filter = 'hue-rotate(320deg) saturate(2)';
-    ctx.font = "24px serif"; 
+    // Draw shining green eagle with gold accents
+    ctx.filter = 'hue-rotate(100deg) saturate(1.8) brightness(1.4)';
+    ctx.font = "20px serif"; 
     ctx.textAlign = "center"; 
     ctx.textBaseline = "middle";
     ctx.fillText("🦅", 0, 0); 
@@ -741,6 +771,7 @@ function draw() {
         ctx.translate(fairy.x + 20, fairy.y + 20);
         const wingFlutter = Math.sin(fairy.wingFlap);
         ctx.scale(1 + wingFlutter * 0.2, 1);
+        ctx.filter = 'hue-rotate(90deg) saturate(1.5)';
         ctx.font = "40px serif";
         ctx.fillText("🧚", -20, 0);
         ctx.restore();
@@ -750,7 +781,7 @@ function draw() {
         ctx.save();
         ctx.translate(tooth.x, tooth.y);
         ctx.rotate(tooth.spin);
-        ctx.fillStyle = "#8B0000";
+        ctx.filter = 'hue-rotate(350deg) saturate(1.2) brightness(1.3)';
         ctx.font = "18px serif";
         ctx.fillText("🦷", -9, 9);
         ctx.restore();

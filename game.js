@@ -84,6 +84,52 @@ function playEagleScreech() {
     osc.stop(audioCtx.currentTime + 0.4);
 }
 
+function playShieldBreakSound() {
+    // Breaking glass sound - multiple high pitched tones decaying
+    const frequencies = [2000, 3000, 4000, 5000, 3500];
+    
+    frequencies.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        
+        const startTime = audioCtx.currentTime + (i * 0.02);
+        gain.gain.setValueAtTime(0.15, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+    });
+}
+
+function playGlassBreakSound() {
+    // Create complex glass breaking sound with multiple frequencies
+    const frequencies = [800, 1200, 1600, 2000, 2400];
+    
+    frequencies.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.02);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, audioCtx.currentTime + 0.3 + i * 0.02);
+        
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime + i * 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3 + i * 0.02);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(audioCtx.currentTime + i * 0.02);
+        osc.stop(audioCtx.currentTime + 0.3 + i * 0.02);
+    });
+}
+
 function playLevelUpSound() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -97,6 +143,31 @@ function playLevelUpSound() {
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.3);
+}
+
+function playBreakingGlassSound() {
+    // Multiple noise bursts to simulate glass breaking
+    for (let i = 0; i < 5; i++) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(2000 + Math.random() * 3000, audioCtx.currentTime + i * 0.05);
+        
+        filter.type = 'highpass';
+        filter.frequency.value = 1000;
+        
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.05 + 0.1);
+        
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(audioCtx.currentTime + i * 0.05);
+        osc.stop(audioCtx.currentTime + i * 0.05 + 0.1);
+    }
 }
 
 function playGameOverSound() {
@@ -145,7 +216,7 @@ let trees = [];
 const eagle = { 
     x: 100, y: 0, w: 20, h: 16,
     gravity: 0.3, lift: -6, velocity: 0, 
-    isAttacking: false, attackTimer: 0 
+    isAttacking: false, attackTimer: 0, shieldActive: false, shieldTimer: 0
 };
 
 const levelDistances = [
@@ -291,7 +362,7 @@ const handleInput = (e) => {
     
     if (now - lastTap < 220) { 
         eagle.isAttacking = true; 
-        eagle.attackTimer = 20; 
+        eagle.attackTimer = 120; // 2 seconds at 60fps
     }
     lastTap = now;
 };
@@ -352,9 +423,9 @@ function update() {
     }
     eagle.y += eagle.velocity;
     
-    if (eagle.isAttacking) { 
-        eagle.attackTimer--; 
-        if (eagle.attackTimer <= 0) eagle.isAttacking = false; 
+    if (eagle.shieldActive) { 
+        eagle.shieldTimer--; 
+        if (eagle.shieldTimer <= 0) eagle.shieldActive = false; 
     }
     
     // Bottom collision only - can touch the sky
@@ -502,14 +573,17 @@ function update() {
         sword.rotation += sword.rotationSpeed;
         
         // Collision detection with eagle
-        const dist = Math.hypot(eagle.x + eagle.w/2 - sword.x, eagle.y + eagle.h/2 - sword.y);
-        if (dist < sword.size + 12) {
-            if (eagle.isAttacking) {
-                swords.splice(i, 1);
-                playEagleScreech();
-            } else {
-                gameOver();
-            }
+        let shieldRadius = 30;
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - sword.x, eagleCenterY - sword.y);
+        
+        if (eagle.isAttacking && dist < shieldRadius + sword.size/2) {
+            swords.splice(i, 1);
+            playBreakingGlassSound();
+            if (navigator.vibrate) navigator.vibrate(200);
+        } else if (!eagle.isAttacking && dist < sword.size + 12) {
+            gameOver();
         }
         
         if (sword.x < -50) swords.splice(i, 1);
@@ -526,18 +600,23 @@ function update() {
         if (d.isFiring) d.fireTimer--; 
         if (d.fireTimer <= 0) d.isFiring = false;
 
-        let strikeScale = 2.5;
-        let effH = eagle.isAttacking ? eagle.h * strikeScale : eagle.h;
-        let eT = eagle.y - (effH - eagle.h) / 2;
-        let eB = eagle.y + eagle.h + (effH - eagle.h) / 2;
+        let shieldRadius = 30;
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dragonCenterX = d.x + d.w/2;
+        let dragonCenterY = d.y + d.h/2;
+        
+        let dist = Math.hypot(eagleCenterX - dragonCenterX, eagleCenterY - dragonCenterY);
 
-        if (eagle.x < d.x + d.w && eagle.x + eagle.w > d.x && eT < d.y + d.h && eB > d.y) {
-            if (eagle.isAttacking) { 
-                dragons.splice(i, 1); 
-                playEagleScreech();
-                if (navigator.vibrate) navigator.vibrate(80);
-            } else gameOver();
-        } else if (d.isFiring && eagle.x + eagle.w > d.x - 90 && eagle.x < d.x && eT < d.y + d.h && eB > d.y) {
+        if (eagle.shieldActive && dist < shieldRadius + d.w/2) {
+            dragons.splice(i, 1); 
+            playShieldBreakSound();
+            if (navigator.vibrate) navigator.vibrate(200);
+        } else if (!eagle.shieldActive && eagle.x < d.x + d.w && eagle.x + eagle.w > d.x && 
+                   eagle.y < d.y + d.h && eagle.y + eagle.h > d.y) {
+            gameOver();
+        } else if (d.isFiring && eagle.x + eagle.w > d.x - 90 && eagle.x < d.x && 
+                   eagle.y < d.y + d.h && eagle.y + eagle.h > d.y) {
             gameOver();
         }
         
@@ -564,14 +643,21 @@ function update() {
             fairy.shootTimer = 70;
         }
         
-        if (eagle.x < fairy.x + fairy.w && eagle.x + fairy.w > fairy.x && 
-            eagle.y < fairy.y + fairy.h && eagle.y + eagle.h > fairy.y) {
-            if (eagle.isAttacking) {
-                toothFairies.splice(i, 1);
-                playEagleScreech();
-            } else {
-                gameOver();
-            }
+        let shieldRadius = 30;
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let fairyCenterX = fairy.x + fairy.w/2;
+        let fairyCenterY = fairy.y + fairy.h/2;
+        
+        let dist = Math.hypot(eagleCenterX - fairyCenterX, eagleCenterY - fairyCenterY);
+        
+        if (eagle.shieldActive && dist < shieldRadius + fairy.w/2) {
+            toothFairies.splice(i, 1);
+            playShieldBreakSound();
+            if (navigator.vibrate) navigator.vibrate(200);
+        } else if (!eagle.shieldActive && eagle.x < fairy.x + fairy.w && eagle.x + fairy.w > fairy.x && 
+                   eagle.y < fairy.y + fairy.h && eagle.y + eagle.h > fairy.y) {
+            gameOver();
         }
         
         if (fairy.x < -100) toothFairies.splice(i, 1);
@@ -582,8 +668,17 @@ function update() {
         tooth.y += tooth.vy;
         tooth.spin += tooth.spinSpeed;
         
-        const dist = Math.hypot(eagle.x + eagle.w/2 - tooth.x, eagle.y + eagle.h/2 - tooth.y);
-        if (dist < 20) gameOver();
+        let shieldRadius = 30;
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        const dist = Math.hypot(eagleCenterX - tooth.x, eagleCenterY - tooth.y);
+        
+        if (eagle.shieldActive && dist < shieldRadius) {
+            teeth.splice(i, 1);
+            playShieldBreakSound();
+        } else if (!eagle.shieldActive && dist < 20) {
+            gameOver();
+        }
         
         if (tooth.x < -50) teeth.splice(i, 1);
     });
@@ -703,44 +798,132 @@ function draw() {
         }
     });
     
-    // Draw swords
+    // Draw Star Wars style lightsaber swords
     swords.forEach(sword => {
         ctx.save();
         ctx.translate(sword.x, sword.y);
         ctx.rotate(sword.rotation);
         
-        // Red glow effect like Star Wars lightsaber
-        ctx.shadowBlur = 20;
+        // Intense red glow for lightsaber effect
+        ctx.shadowBlur = 25;
         ctx.shadowColor = "#FF0000";
-        ctx.fillStyle = "#FF0000";
-        ctx.font = `${sword.size}px serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("🗡️", 0, 0);
+        
+        // Draw lightsaber blade as vertical red beam
+        const bladeLength = 40;
+        const bladeWidth = 4;
+        
+        // Outer glow
+        ctx.strokeStyle = "#FF6666";
+        ctx.lineWidth = 8;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(0, -bladeLength/2);
+        ctx.lineTo(0, bladeLength/2);
+        ctx.stroke();
+        
+        // Core beam
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = bladeWidth;
+        ctx.globalAlpha = 1.0;
+        ctx.beginPath();
+        ctx.moveTo(0, -bladeLength/2);
+        ctx.lineTo(0, bladeLength/2);
+        ctx.stroke();
+        
+        // Inner bright core
+        ctx.strokeStyle = "#FFAAAA";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -bladeLength/2);
+        ctx.lineTo(0, bladeLength/2);
+        ctx.stroke();
+        
+        // Hilt
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#333333";
+        ctx.globalAlpha = 1.0;
+        ctx.fillRect(-3, bladeLength/2, 6, 8);
         
         ctx.restore();
     });
     
-    // Draw SHINING GREEN eagle with gold framework
+    // Draw VIOLET/PURPLE eagle with gold framework
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
-    ctx.scale(-1, eagle.isAttacking ? 2.5 : 1.0);
+    ctx.scale(-1, 1.0);
     
-    // Gold framework glow
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = "gold";
-    
-    if(eagle.isAttacking) { 
-        ctx.shadowBlur = 40; 
-        ctx.shadowColor = "#FFD700"; 
+    // Draw fancy addictive shield when active (behind eagle)
+    if(eagle.shieldActive) {
+        ctx.filter = 'none';
+        ctx.shadowBlur = 35;
+        ctx.shadowColor = "#00FFFF";
+        
+        // Pulsating effect based on time
+        const pulse = Math.sin(Date.now() * 0.01) * 0.2 + 0.8;
+        
+        // Cyan/gold shield with } shape
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * pulse})`;
+        ctx.fillStyle = `rgba(138, 43, 226, ${0.35 * pulse})`;
+        ctx.lineWidth = 4;
+        
+        // Draw } shaped shield
+        ctx.beginPath();
+        ctx.arc(8, 0, 30, -Math.PI * 0.6, Math.PI * 0.6, false);
+        ctx.arc(-2, 0, 18, Math.PI * 0.6, -Math.PI * 0.6, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // Multiple energy rings
+        for(let ring = 0; ring < 3; ring++) {
+            ctx.strokeStyle = `rgba(255, 215, 0, ${(0.6 - ring * 0.2) * pulse})`;
+            ctx.lineWidth = 2 - ring * 0.5;
+            ctx.beginPath();
+            ctx.arc(8, 0, 30 + ring * 4, -Math.PI * 0.6, Math.PI * 0.6, false);
+            ctx.stroke();
+        }
+        
+        // Animated sparkles around shield
+        for(let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + Date.now() * 0.005;
+            const radius = 28 + Math.sin(Date.now() * 0.01 + i) * 4;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            const sparkleSize = 2 + Math.sin(Date.now() * 0.02 + i) * 1;
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.beginPath();
+            ctx.arc(x, y, sparkleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Energy particles
+        for(let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2 + Date.now() * 0.008;
+            const x = Math.cos(angle) * 22;
+            const y = Math.sin(angle) * 22;
+            ctx.fillStyle = `rgba(0, 255, 255, ${0.7 * pulse})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
     
-    // Draw shining green eagle with gold accents
-    ctx.filter = 'hue-rotate(100deg) saturate(1.8) brightness(1.4)';
+    // Golden framework glow
+    ctx.shadowBlur = 35;
+    ctx.shadowColor = "#FFD700";
+    
+    if(eagle.shieldActive) { 
+        ctx.shadowBlur = 50; 
+        ctx.shadowColor = "#00FFFF"; 
+    }
+    
+    // Draw violet/purple eagle with gold accents
+    ctx.filter = 'hue-rotate(270deg) saturate(2.2) brightness(1.3) contrast(1.1)';
     ctx.font = "20px serif"; 
     ctx.textAlign = "center"; 
     ctx.textBaseline = "middle";
     ctx.fillText("🦅", 0, 0); 
+    
     ctx.restore();
     
     dragons.forEach(d => {

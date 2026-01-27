@@ -84,50 +84,37 @@ function playEagleScreech() {
     osc.stop(audioCtx.currentTime + 0.4);
 }
 
-function playShieldBreakSound() {
-    // Breaking glass sound - multiple high pitched tones decaying
-    const frequencies = [2000, 3000, 4000, 5000, 3500];
+function playFireThrowSound() {
+    // Whoosh fire sound
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
     
-    frequencies.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        
-        const startTime = audioCtx.currentTime + (i * 0.02);
-        gain.gain.setValueAtTime(0.15, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc.start(startTime);
-        osc.stop(startTime + 0.3);
-    });
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.3);
+    
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+}
+
+function playShieldBreakSound() {
+    // Removed - now just vibration
 }
 
 function playGlassBreakSound() {
-    // Create complex glass breaking sound with multiple frequencies
-    const frequencies = [800, 1200, 1600, 2000, 2400];
-    
-    frequencies.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.02);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, audioCtx.currentTime + 0.3 + i * 0.02);
-        
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime + i * 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3 + i * 0.02);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc.start(audioCtx.currentTime + i * 0.02);
-        osc.stop(audioCtx.currentTime + 0.3 + i * 0.02);
-    });
+    // Removed - now just vibration
 }
 
 function playLevelUpSound() {
@@ -146,28 +133,7 @@ function playLevelUpSound() {
 }
 
 function playBreakingGlassSound() {
-    // Multiple noise bursts to simulate glass breaking
-    for (let i = 0; i < 5; i++) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        const filter = audioCtx.createBiquadFilter();
-        
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(2000 + Math.random() * 3000, audioCtx.currentTime + i * 0.05);
-        
-        filter.type = 'highpass';
-        filter.frequency.value = 1000;
-        
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.05 + 0.1);
-        
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc.start(audioCtx.currentTime + i * 0.05);
-        osc.stop(audioCtx.currentTime + i * 0.05 + 0.1);
-    }
+    // Removed - now just vibration
 }
 
 function playGameOverSound() {
@@ -210,10 +176,11 @@ let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
 let buildings = [], snow = [], planets = [], thunders = [];
 let swords = [];
+let fireballs = []; // New array for eagle's fireballs
 
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
-    gravity: 0.3, lift: -6, velocity: 0, 
+    gravity: 0.5, lift: -4, velocity: 0, 
     isAttacking: false, attackTimer: 0, shieldActive: false, shieldTimer: 0
 };
 
@@ -347,8 +314,21 @@ const handleInput = (e) => {
     isHoldingTap = true;
     
     if (now - lastTap < 220) { 
+        // Double tap - throw fire
         eagle.isAttacking = true; 
-        eagle.attackTimer = 120; // 2 seconds at 60fps
+        eagle.attackTimer = 30; // Short visual indicator
+        
+        // Create fireball
+        fireballs.push({
+            x: eagle.x + eagle.w,
+            y: eagle.y + eagle.h / 2,
+            vx: 8,
+            vy: 0,
+            size: 20,
+            life: 100
+        });
+        
+        playFireThrowSound();
     }
     lastTap = now;
 };
@@ -387,6 +367,7 @@ function startGameFromLevel(lvl, level) {
     dragons = []; toothFairies = []; teeth = [];
     chimneyObstacles = []; thunders = [];
     swords = [];
+    fireballs = [];
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -407,6 +388,11 @@ function update() {
     if (eagle.shieldActive) { 
         eagle.shieldTimer--; 
         if (eagle.shieldTimer <= 0) eagle.shieldActive = false; 
+    }
+    
+    if (eagle.isAttacking) {
+        eagle.attackTimer--;
+        if (eagle.attackTimer <= 0) eagle.isAttacking = false;
     }
     
     // Bottom collision only - can touch the sky
@@ -449,6 +435,16 @@ function update() {
         t.life--;
         t.alpha = t.life / 15;
         if (t.life <= 0) thunders.splice(i, 1);
+    });
+    
+    // Update fireballs
+    fireballs.forEach((fb, i) => {
+        fb.x += fb.vx;
+        fb.life--;
+        
+        if (fb.life <= 0 || fb.x > canvas.width) {
+            fireballs.splice(i, 1);
+        }
     });
     
     // Spawn chimneys during pipes phase
@@ -550,17 +546,27 @@ function update() {
         sword.x -= config.speed;
         sword.rotation += sword.rotationSpeed;
         
+        // Check collision with fireballs
+        let hitByFireball = false;
+        fireballs.forEach((fb, fbIndex) => {
+            const dist = Math.hypot(fb.x - sword.x, fb.y - sword.y);
+            if (dist < fb.size + sword.size/2) {
+                swords.splice(i, 1);
+                fireballs.splice(fbIndex, 1);
+                if (navigator.vibrate) navigator.vibrate(100);
+                hitByFireball = true;
+            }
+        });
+        
+        if (hitByFireball) return;
+        
         // Collision detection with eagle
         let shieldRadius = 30;
         let eagleCenterX = eagle.x + eagle.w/2;
         let eagleCenterY = eagle.y + eagle.h/2;
         let dist = Math.hypot(eagleCenterX - sword.x, eagleCenterY - sword.y);
         
-        if (eagle.isAttacking && dist < shieldRadius + sword.size/2) {
-            swords.splice(i, 1);
-            playBreakingGlassSound();
-            if (navigator.vibrate) navigator.vibrate(200);
-        } else if (!eagle.isAttacking && dist < sword.size + 12) {
+        if (!eagle.isAttacking && dist < sword.size + 12) {
             gameOver();
         }
         
@@ -578,6 +584,22 @@ function update() {
         if (d.isFiring) d.fireTimer--; 
         if (d.fireTimer <= 0) d.isFiring = false;
 
+        // Check collision with fireballs
+        let hitByFireball = false;
+        fireballs.forEach((fb, fbIndex) => {
+            let dragonCenterX = d.x + d.w/2;
+            let dragonCenterY = d.y + d.h/2;
+            const dist = Math.hypot(fb.x - dragonCenterX, fb.y - dragonCenterY);
+            if (dist < fb.size + d.w/2) {
+                dragons.splice(i, 1);
+                fireballs.splice(fbIndex, 1);
+                if (navigator.vibrate) navigator.vibrate(100);
+                hitByFireball = true;
+            }
+        });
+        
+        if (hitByFireball) return;
+
         let shieldRadius = 30;
         let eagleCenterX = eagle.x + eagle.w/2;
         let eagleCenterY = eagle.y + eagle.h/2;
@@ -588,8 +610,7 @@ function update() {
 
         if (eagle.shieldActive && dist < shieldRadius + d.w/2) {
             dragons.splice(i, 1); 
-            playShieldBreakSound();
-            if (navigator.vibrate) navigator.vibrate(200);
+            if (navigator.vibrate) navigator.vibrate(100);
         } else if (!eagle.shieldActive && eagle.x < d.x + d.w && eagle.x + eagle.w > d.x && 
                    eagle.y < d.y + d.h && eagle.y + eagle.h > d.y) {
             gameOver();
@@ -621,6 +642,22 @@ function update() {
             fairy.shootTimer = 70;
         }
         
+        // Check collision with fireballs
+        let hitByFireball = false;
+        fireballs.forEach((fb, fbIndex) => {
+            let fairyCenterX = fairy.x + fairy.w/2;
+            let fairyCenterY = fairy.y + fairy.h/2;
+            const dist = Math.hypot(fb.x - fairyCenterX, fb.y - fairyCenterY);
+            if (dist < fb.size + fairy.w/2) {
+                toothFairies.splice(i, 1);
+                fireballs.splice(fbIndex, 1);
+                if (navigator.vibrate) navigator.vibrate(100);
+                hitByFireball = true;
+            }
+        });
+        
+        if (hitByFireball) return;
+        
         let shieldRadius = 30;
         let eagleCenterX = eagle.x + eagle.w/2;
         let eagleCenterY = eagle.y + eagle.h/2;
@@ -631,8 +668,7 @@ function update() {
         
         if (eagle.shieldActive && dist < shieldRadius + fairy.w/2) {
             toothFairies.splice(i, 1);
-            playShieldBreakSound();
-            if (navigator.vibrate) navigator.vibrate(200);
+            if (navigator.vibrate) navigator.vibrate(100);
         } else if (!eagle.shieldActive && eagle.x < fairy.x + fairy.w && eagle.x + fairy.w > fairy.x && 
                    eagle.y < fairy.y + fairy.h && eagle.y + eagle.h > fairy.y) {
             gameOver();
@@ -646,6 +682,19 @@ function update() {
         tooth.y += tooth.vy;
         tooth.spin += tooth.spinSpeed;
         
+        // Check collision with fireballs
+        let hitByFireball = false;
+        fireballs.forEach((fb, fbIndex) => {
+            const dist = Math.hypot(fb.x - tooth.x, fb.y - tooth.y);
+            if (dist < fb.size) {
+                teeth.splice(i, 1);
+                if (navigator.vibrate) navigator.vibrate(100);
+                hitByFireball = true;
+            }
+        });
+        
+        if (hitByFireball) return;
+        
         let shieldRadius = 30;
         let eagleCenterX = eagle.x + eagle.w/2;
         let eagleCenterY = eagle.y + eagle.h/2;
@@ -653,7 +702,6 @@ function update() {
         
         if (eagle.shieldActive && dist < shieldRadius) {
             teeth.splice(i, 1);
-            playShieldBreakSound();
         } else if (!eagle.shieldActive && dist < 20) {
             gameOver();
         }
@@ -817,101 +865,115 @@ function draw() {
         ctx.restore();
     });
     
-<<<<<<< HEAD
-    // Draw VIOLET/PURPLE eagle with gold framework
-=======
-    // Draw RED eagle with addictive glow effect
->>>>>>> parent of 8ab6fcb (Change features eagle, pipes, enemies)
+    // Draw fireballs
+    fireballs.forEach(fb => {
+        ctx.save();
+        
+        // Fire glow effect
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "#FF4500";
+        
+        // Outer flame
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = "#FF4500";
+        ctx.beginPath();
+        ctx.arc(fb.x, fb.y, fb.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Middle flame
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = "#FF6347";
+        ctx.beginPath();
+        ctx.arc(fb.x, fb.y, fb.size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner core
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = "#FFA500";
+        ctx.beginPath();
+        ctx.arc(fb.x, fb.y, fb.size * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    });
+    
+    // Draw FANCY HORIZONTAL BIRD with gold framework (small/no wings)
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
-    ctx.scale(-1, 1.0);
-    
-<<<<<<< HEAD
-    // Draw fancy addictive shield when active (behind eagle)
-    if(eagle.shieldActive) {
-        ctx.filter = 'none';
-        ctx.shadowBlur = 35;
-        ctx.shadowColor = "#00FFFF";
-        
-        // Pulsating effect based on time
-        const pulse = Math.sin(Date.now() * 0.01) * 0.2 + 0.8;
-        
-        // Cyan/gold shield with } shape
-        ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * pulse})`;
-        ctx.fillStyle = `rgba(138, 43, 226, ${0.35 * pulse})`;
-        ctx.lineWidth = 4;
-        
-        // Draw } shaped shield
-        ctx.beginPath();
-        ctx.arc(8, 0, 30, -Math.PI * 0.6, Math.PI * 0.6, false);
-        ctx.arc(-2, 0, 18, Math.PI * 0.6, -Math.PI * 0.6, true);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        
-        // Multiple energy rings
-        for(let ring = 0; ring < 3; ring++) {
-            ctx.strokeStyle = `rgba(255, 215, 0, ${(0.6 - ring * 0.2) * pulse})`;
-            ctx.lineWidth = 2 - ring * 0.5;
-            ctx.beginPath();
-            ctx.arc(8, 0, 30 + ring * 4, -Math.PI * 0.6, Math.PI * 0.6, false);
-            ctx.stroke();
-        }
-        
-        // Animated sparkles around shield
-        for(let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2 + Date.now() * 0.005;
-            const radius = 28 + Math.sin(Date.now() * 0.01 + i) * 4;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            const sparkleSize = 2 + Math.sin(Date.now() * 0.02 + i) * 1;
-            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
-            ctx.beginPath();
-            ctx.arc(x, y, sparkleSize, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        // Energy particles
-        for(let i = 0; i < 5; i++) {
-            const angle = (i / 5) * Math.PI * 2 + Date.now() * 0.008;
-            const x = Math.cos(angle) * 22;
-            const y = Math.sin(angle) * 22;
-            ctx.fillStyle = `rgba(0, 255, 255, ${0.7 * pulse})`;
-            ctx.beginPath();
-            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
     
     // Golden framework glow
     ctx.shadowBlur = 35;
     ctx.shadowColor = "#FFD700";
     
-    if(eagle.shieldActive) { 
-        ctx.shadowBlur = 50; 
-        ctx.shadowColor = "#00FFFF"; 
-    }
-    
-    // Draw violet/purple eagle with gold accents
-    ctx.filter = 'hue-rotate(270deg) saturate(2.2) brightness(1.3) contrast(1.1)';
-    ctx.font = "20px serif"; 
-=======
-    // Red glow effect
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "red";
-    
     if(eagle.isAttacking) { 
-        ctx.shadowBlur = 25; 
-        ctx.shadowColor = "crimson"; 
+        ctx.shadowBlur = 45; 
+        ctx.shadowColor = "#FF4500"; // Orange-red glow when throwing fire
     }
     
-    // Draw red eagle
-    ctx.filter = 'hue-rotate(320deg) saturate(2)';
-    ctx.font = "24px serif"; 
->>>>>>> parent of 8ab6fcb (Change features eagle, pipes, enemies)
-    ctx.textAlign = "center"; 
-    ctx.textBaseline = "middle";
-    ctx.fillText("🦅", 0, 0); 
+    // Draw fancy black bird with minimal wings - horizontal orientation
+    ctx.filter = 'brightness(0.3) contrast(1.5)'; // Black/dark fancy bird
+    
+    // Body (streamlined horizontal oval)
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a1a1a'; // Dark black
+    ctx.fill();
+    ctx.strokeStyle = '#FFD700'; // Gold outline
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // Head (smaller circle at front)
+    ctx.beginPath();
+    ctx.arc(14, 0, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fill();
+    ctx.strokeStyle = '#FFD700';
+    ctx.stroke();
+    
+    // Beak (pointing right)
+    ctx.beginPath();
+    ctx.moveTo(19, 0);
+    ctx.lineTo(24, -2);
+    ctx.lineTo(24, 2);
+    ctx.closePath();
+    ctx.fillStyle = '#FFD700'; // Gold beak
+    ctx.fill();
+    
+    // Eye
+    ctx.beginPath();
+    ctx.arc(16, -2, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFD700';
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(16, -2, 0.7, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    
+    // Tail feathers (back)
+    ctx.beginPath();
+    ctx.moveTo(-16, 0);
+    ctx.lineTo(-22, -4);
+    ctx.lineTo(-20, 0);
+    ctx.lineTo(-22, 4);
+    ctx.closePath();
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fill();
+    ctx.strokeStyle = '#FFD700';
+    ctx.stroke();
+    
+    // Minimal wings (very small, barely visible)
+    // Top wing stub
+    ctx.beginPath();
+    ctx.ellipse(2, -8, 3, 2, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fill();
+    
+    // Bottom wing stub
+    ctx.beginPath();
+    ctx.ellipse(2, 8, 3, 2, 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fill();
     
     ctx.restore();
     

@@ -159,6 +159,8 @@ const levels = {
 
 let difficulty = 'medium';
 
+let lastChimneyGapStart = null;
+
 function initWorld() {
     snow = []; buildings = []; planets = [];
     
@@ -167,7 +169,8 @@ function initWorld() {
             x: Math.random() * canvas.width, 
             y: Math.random() * canvas.height, 
             s: Math.random() * 2.5 + 0.8, 
-            v: Math.random() * 1.2 + 0.4
+            v: Math.random() * 1.2 + 0.4,
+            isFancy: Math.random() > 0.5
         });
     }
     
@@ -308,6 +311,7 @@ function startGameFromLevel(lvl, level) {
     frameCount = 0;
     phaseTimer = 0;
     currentPhase = 'pipes';
+    lastChimneyGapStart = null;
     
     dragons = []; toothFairies = []; teeth = [];
     chimneyObstacles = []; thunders = [];
@@ -379,7 +383,25 @@ function update() {
     // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
         const gapSize = 200;
-        const gapStart = 120 + Math.random() * (canvas.height - gapSize - 240);
+        
+        let gapStart;
+        if (lastChimneyGapStart === null) {
+            // First chimney - place it in a safe middle area
+            gapStart = canvas.height / 2 - gapSize / 2;
+        } else {
+            // Subsequent chimneys - gradual change like Flappy Bird
+            // Allow movement up or down, but limit the change to avoid steep slopes
+            const maxChange = 80; // Maximum vertical change between pipes
+            const minGap = 120; // Minimum distance from top
+            const maxGap = canvas.height - gapSize - 120; // Maximum distance from bottom
+            
+            // Random change within allowed range
+            const change = (Math.random() - 0.5) * 2 * maxChange;
+            gapStart = lastChimneyGapStart + change;
+            
+            // Clamp to safe boundaries
+            gapStart = Math.max(minGap, Math.min(maxGap, gapStart));
+        }
         
         chimneyObstacles.push({
             x: canvas.width,
@@ -387,6 +409,8 @@ function update() {
             gapSize: gapSize,
             width: 50
         });
+        
+        lastChimneyGapStart = gapStart;
     }
     
     chimneyObstacles.forEach((chimney, i) => {
@@ -637,11 +661,16 @@ function draw() {
         }
     });
     
-    ctx.fillStyle = "white";
     snow.forEach(p => { 
-        ctx.beginPath(); 
-        ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); 
-        ctx.fill(); 
+        if (p.isFancy) {
+            ctx.font = `${p.s * 3}px serif`;
+            ctx.fillText("❄️", p.x, p.y);
+        } else {
+            ctx.fillStyle = "white";
+            ctx.beginPath(); 
+            ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); 
+            ctx.fill();
+        }
     });
     
     // Draw swords

@@ -174,7 +174,7 @@ let phaseTimer = 0, currentPhase = 'pipes';
 
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
-let buildings = [], snow = [], planets = [], thunders = [];
+let buildings = [], snow = [], planets = [], thunders = [], trees = [];
 let swords = [];
 let fireballs = []; // New array for eagle's fireballs
 
@@ -190,9 +190,9 @@ const levelDistances = [
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 50, enemySpawnRate: 80, speed: 2.5, fireFreq: 0.005, maxEnemies: 4, swordSpawnRate: 90 }, 
-    medium: { obstacleSpawnRate: 45, enemySpawnRate: 70, speed: 3.5, fireFreq: 0.01, maxEnemies: 5, swordSpawnRate: 75 }, 
-    hard: { obstacleSpawnRate: 40, enemySpawnRate: 60, speed: 4.5, fireFreq: 0.018, maxEnemies: 6, swordSpawnRate: 60 } 
+    easy: { obstacleSpawnRate: 70, enemySpawnRate: 100, speed: 3.0, fireFreq: 0.003, maxEnemies: 3, swordSpawnRate: 110, gapSize: 100 }, 
+    medium: { obstacleSpawnRate: 55, enemySpawnRate: 80, speed: 3.0, fireFreq: 0.008, maxEnemies: 5, swordSpawnRate: 80, gapSize: 100 }, 
+    hard: { obstacleSpawnRate: 45, enemySpawnRate: 65, speed: 3.0, fireFreq: 0.015, maxEnemies: 7, swordSpawnRate: 60, gapSize: 100 } 
 };
 
 let difficulty = 'medium';
@@ -200,7 +200,7 @@ let difficulty = 'medium';
 let lastChimneyGapStart = null;
 
 function initWorld() {
-    snow = []; buildings = []; planets = [];
+    snow = []; buildings = []; planets = []; trees = [];
     
     for(let i = 0; i < 150; i++) {
         snow.push({
@@ -220,6 +220,17 @@ function initWorld() {
             y: canvas.height - height - 50,
             width: 55,
             height: height
+        });
+    }
+    
+    // Add bigger, dark green trees - taller than buildings
+    for(let i = 0; i < buildingCount + 2; i++) {
+        const treeHeight = 120 + Math.random() * 80; // Much bigger trees (was 40+30)
+        trees.push({
+            x: i * 60 + 30, // Offset between buildings
+            y: canvas.height - treeHeight - 50,
+            height: treeHeight,
+            trunkWidth: 15 + Math.random() * 10 // Wider trunks for bigger trees
         });
     }
     
@@ -449,7 +460,7 @@ function update() {
     
     // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
-        const gapSize = 180; // Reduced from 200 to make more challenging for smaller bird
+        const gapSize = config.gapSize; // Now 120px - much more challenging!
         
         let gapStart;
         if (lastChimneyGapStart === null) {
@@ -457,10 +468,9 @@ function update() {
             gapStart = canvas.height / 2 - gapSize / 2;
         } else {
             // Subsequent chimneys - gradual change like Flappy Bird
-            // Allow movement up or down, but limit the change to avoid steep slopes
-            const maxChange = 70; // Increased from 60 for more challenge
-            const minGap = 80; // Reduced padding for tighter spaces
-            const maxGap = canvas.height - gapSize - 80; // Reduced padding
+            const maxChange = 70;
+            const minGap = 80;
+            const maxGap = canvas.height - gapSize - 80;
             
             // Random change within allowed range
             const change = (Math.random() - 0.5) * 2 * maxChange;
@@ -670,7 +680,7 @@ function update() {
             toothFairies.splice(i, 1);
             if (navigator.vibrate) navigator.vibrate(100);
         } else if (!eagle.shieldActive && eagle.x < fairy.x + fairy.w && eagle.x + fairy.w > fairy.x && 
-                   eagle.y < fairy.y + fairy.h && eagle.y + eagle.h > fairy.y) {
+                   eagle.y < fairy.y + fairy.h && eagle.y + fairy.h > fairy.y) {
             gameOver();
         }
         
@@ -744,13 +754,13 @@ function draw() {
     
     ctx.globalAlpha = 0.5;
     buildings.forEach(b => {
-        ctx.fillStyle = "#FFFFFF";
+        ctx.fillStyle = "#66ff00";
         ctx.fillRect(b.x, b.y, b.width, b.height);
-        ctx.strokeStyle = "#DDDDDD";
+        ctx.strokeStyle = "#3a8f11";
         ctx.lineWidth = 2;
         ctx.strokeRect(b.x, b.y, b.width, b.height);
         
-        ctx.fillStyle = "#87CEEB";
+        ctx.fillStyle = "#000000";
         for(let row = 1; row < Math.floor(b.height / 20); row++) {
             for(let col = 0; col < 2; col++) {
                 ctx.fillRect(b.x + 10 + col * 25, b.y + row * 20, 12, 15);
@@ -767,11 +777,11 @@ function draw() {
         
         // Top chimney
         if (topHeight > 0) {
-            ctx.fillStyle = "#8B4513";
+            ctx.fillStyle = "#ff00ff";
             ctx.fillRect(chimney.x, 0, chimney.width, topHeight);
             
             // Brick pattern
-            ctx.strokeStyle = "#654321";
+            ctx.strokeStyle = "#cc00cc";
             ctx.lineWidth = 2;
             for(let y = 0; y < topHeight; y += 15) {
                 for(let x = 0; x < chimney.width; x += 25) {
@@ -780,17 +790,17 @@ function draw() {
             }
             
             // Chimney cap
-            ctx.fillStyle = "#654321";
+            ctx.fillStyle = "#cc00cc";
             ctx.fillRect(chimney.x - 5, topHeight - 10, chimney.width + 10, 10);
         }
         
         // Bottom chimney
         if (bottomHeight > 0) {
-            ctx.fillStyle = "#8B4513";
+            ctx.fillStyle = "#ff00ff";
             ctx.fillRect(chimney.x, bottomY, chimney.width, bottomHeight);
             
             // Brick pattern
-            ctx.strokeStyle = "#654321";
+            ctx.strokeStyle = "#cc00cc";
             ctx.lineWidth = 2;
             for(let y = bottomY; y < canvas.height; y += 15) {
                 for(let x = 0; x < chimney.width; x += 25) {
@@ -799,7 +809,7 @@ function draw() {
             }
             
             // Chimney cap
-            ctx.fillStyle = "#654321";
+            ctx.fillStyle = "#cc00cc";
             ctx.fillRect(chimney.x - 5, bottomY, chimney.width + 10, 10);
         }
     });

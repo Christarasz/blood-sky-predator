@@ -171,6 +171,8 @@ let gameActive = false, frameCount = 0, distance = 0, time = 0;
 let lastTap = 0, isHoldingTap = false;
 let currentLevel = 1;
 let phaseTimer = 0, currentPhase = 'pipes';
+let gracePeriod = 120; // 2 seconds at 60fps
+let gracePeriodActive = false;
 
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
@@ -196,6 +198,7 @@ const levels = {
 };
 
 let difficulty = 'medium';
+let selectedLevel = null;
 
 let lastChimneyGapStart = null;
 
@@ -283,6 +286,7 @@ function backToMenu() {
 
 function showLevelSelect(diff) {
     difficulty = diff;
+    selectedLevel = null;
     document.getElementById('menu').style.display = 'none';
     document.getElementById('level-select').style.display = 'block';
     
@@ -297,7 +301,7 @@ function showLevelSelect(diff) {
         
         if (i <= maxUnlocked) {
             btn.textContent = i;
-            btn.onclick = () => startGameFromLevel(diff, i);
+            btn.onclick = () => selectLevel(i);
         } else {
             btn.classList.add('locked');
             btn.textContent = '🔒';
@@ -305,6 +309,53 @@ function showLevelSelect(diff) {
         }
         
         grid.appendChild(btn);
+    }
+    
+    // Add Start Game button if it doesn't exist
+    let startBtn = document.getElementById('start-game-btn');
+    if (!startBtn) {
+        startBtn = document.createElement('button');
+        startBtn.id = 'start-game-btn';
+        startBtn.textContent = 'Start Game';
+        startBtn.style.display = 'none';
+        startBtn.style.marginTop = '20px';
+        startBtn.style.padding = '15px 40px';
+        startBtn.style.fontSize = '20px';
+        startBtn.style.backgroundColor = '#00ff00';
+        startBtn.style.border = 'none';
+        startBtn.style.borderRadius = '10px';
+        startBtn.style.cursor = 'pointer';
+        startBtn.style.fontWeight = 'bold';
+        startBtn.onclick = () => {
+            if (selectedLevel !== null) {
+                startGameFromLevel(difficulty, selectedLevel);
+            }
+        };
+        document.getElementById('level-select').appendChild(startBtn);
+    } else {
+        startBtn.style.display = 'none';
+    }
+}
+
+function selectLevel(level) {
+    selectedLevel = level;
+    
+    // Remove red background from all buttons
+    const buttons = document.querySelectorAll('.level-button');
+    buttons.forEach(btn => {
+        btn.style.backgroundColor = '';
+    });
+    
+    // Add red background to selected button
+    const selectedBtn = buttons[level - 1];
+    if (selectedBtn) {
+        selectedBtn.style.backgroundColor = 'red';
+    }
+    
+    // Show Start Game button
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) {
+        startBtn.style.display = 'block';
     }
 }
 
@@ -374,6 +425,8 @@ function startGameFromLevel(lvl, level) {
     phaseTimer = 0;
     currentPhase = 'pipes';
     lastChimneyGapStart = null;
+    gracePeriodActive = true;
+    gracePeriod = 120; // Reset to 2 seconds
     
     dragons = []; toothFairies = []; teeth = [];
     chimneyObstacles = []; thunders = [];
@@ -389,12 +442,26 @@ function startGameFromLevel(lvl, level) {
 function update() {
     const config = levels[difficulty];
     
-    if (isHoldingTap) {
-        eagle.velocity = eagle.lift;
-    } else {
-        eagle.velocity += eagle.gravity;
+    // Handle grace period countdown
+    if (gracePeriodActive) {
+        gracePeriod--;
+        if (gracePeriod <= 0) {
+            gracePeriodActive = false;
+        }
     }
-    eagle.y += eagle.velocity;
+    
+    // Apply physics only after grace period
+    if (!gracePeriodActive) {
+        if (isHoldingTap) {
+            eagle.velocity = eagle.lift;
+        } else {
+            eagle.velocity += eagle.gravity;
+        }
+        eagle.y += eagle.velocity;
+    } else {
+        // During grace period, keep eagle at starting position
+        eagle.velocity = 0;
+    }
     
     if (eagle.shieldActive) { 
         eagle.shieldTimer--; 
@@ -952,12 +1019,12 @@ function draw() {
     
     // Eye - bigger and white
     ctx.beginPath();
-    ctx.arc(16, -2, 2.5, 0, Math.PI * 2);
+    ctx.arc(16, -2, 3.5, 0, Math.PI * 2);
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
     
     ctx.beginPath();
-    ctx.arc(16, -2, 1.2, 0, Math.PI * 2);
+    ctx.arc(16, -2, 1.8, 0, Math.PI * 2);
     ctx.fillStyle = '#000';
     ctx.fill();
     

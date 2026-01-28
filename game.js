@@ -428,7 +428,7 @@ function startGameFromLevel(lvl, level) {
     currentPhase = 'pipes';
     lastChimneyGapStart = null;
     gracePeriodActive = true;
-    gracePeriod = 50; // Reset to 2 seconds
+    gracePeriod = 5; 
     lastFrameTime = performance.now();
     deltaTime = 0;
     

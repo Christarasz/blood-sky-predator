@@ -950,14 +950,14 @@ function draw() {
     ctx.fillStyle = '#FFD700'; // Gold beak
     ctx.fill();
     
-    // Eye
+    // Eye - bigger and white
     ctx.beginPath();
-    ctx.arc(16, -2, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFD700';
+    ctx.arc(16, -2, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
     ctx.fill();
     
     ctx.beginPath();
-    ctx.arc(16, -2, 0.7, 0, Math.PI * 2);
+    ctx.arc(16, -2, 1.2, 0, Math.PI * 2);
     ctx.fillStyle = '#000';
     ctx.fill();
     

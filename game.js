@@ -173,6 +173,8 @@ let currentLevel = 1;
 let phaseTimer = 0, currentPhase = 'pipes';
 let gracePeriod = 120; // 2 seconds at 60fps
 let gracePeriodActive = false;
+let lastFrameTime = 0;
+let deltaTime = 0;
 
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
@@ -427,6 +429,8 @@ function startGameFromLevel(lvl, level) {
     lastChimneyGapStart = null;
     gracePeriodActive = true;
     gracePeriod = 120; // Reset to 2 seconds
+    lastFrameTime = performance.now();
+    deltaTime = 0;
     
     dragons = []; toothFairies = []; teeth = [];
     chimneyObstacles = []; thunders = [];
@@ -444,7 +448,7 @@ function update() {
     
     // Handle grace period countdown
     if (gracePeriodActive) {
-        gracePeriod--;
+        gracePeriod -= deltaTime;
         if (gracePeriod <= 0) {
             gracePeriodActive = false;
         }
@@ -455,21 +459,21 @@ function update() {
         if (isHoldingTap) {
             eagle.velocity = eagle.lift;
         } else {
-            eagle.velocity += eagle.gravity;
+            eagle.velocity += eagle.gravity * deltaTime;
         }
-        eagle.y += eagle.velocity;
+        eagle.y += eagle.velocity * deltaTime;
     } else {
         // During grace period, keep eagle at starting position
         eagle.velocity = 0;
     }
     
     if (eagle.shieldActive) { 
-        eagle.shieldTimer--; 
+        eagle.shieldTimer -= deltaTime; 
         if (eagle.shieldTimer <= 0) eagle.shieldActive = false; 
     }
     
     if (eagle.isAttacking) {
-        eagle.attackTimer--;
+        eagle.attackTimer -= deltaTime;
         if (eagle.attackTimer <= 0) eagle.isAttacking = false;
     }
     
@@ -477,7 +481,7 @@ function update() {
     if (eagle.y + eagle.h > canvas.height) gameOver();
     if (eagle.y < 0) eagle.y = 0;
     
-    distance += config.speed * 0.1;
+    distance += config.speed * 0.1 * deltaTime;
     if (frameCount % 60 === 0) time++;
     
     for(let i = currentLevel; i < 20; i++) {
@@ -491,7 +495,7 @@ function update() {
     
     levelDisplay.innerText = `LEVEL: ${currentLevel}`;
     
-    phaseTimer++;
+    phaseTimer += deltaTime;
     
     if (currentPhase === 'pipes') {
         if (phaseTimer > 1800) {
@@ -505,20 +509,20 @@ function update() {
         }
     }
     
-    if (Math.random() < 0.005) {
+    if (Math.random() < 0.005 * deltaTime) {
         thunders.push({ x: Math.random() * canvas.width, life: 15, alpha: 1 });
     }
     
     thunders.forEach((t, i) => {
-        t.life--;
+        t.life -= deltaTime;
         t.alpha = t.life / 15;
         if (t.life <= 0) thunders.splice(i, 1);
     });
     
     // Update fireballs
     fireballs.forEach((fb, i) => {
-        fb.x += fb.vx;
-        fb.life--;
+        fb.x += fb.vx * deltaTime;
+        fb.life -= deltaTime;
         
         if (fb.life <= 0 || fb.x > canvas.width) {
             fireballs.splice(i, 1);
@@ -558,7 +562,7 @@ function update() {
     }
     
     chimneyObstacles.forEach((chimney, i) => {
-        chimney.x -= config.speed;
+        chimney.x -= config.speed * deltaTime;
         
         // Collision detection
         if (eagle.x + eagle.w > chimney.x && eagle.x < chimney.x + chimney.width) {
@@ -620,8 +624,8 @@ function update() {
     }
     
     swords.forEach((sword, i) => {
-        sword.x -= config.speed;
-        sword.rotation += sword.rotationSpeed;
+        sword.x -= config.speed * deltaTime;
+        sword.rotation += sword.rotationSpeed * deltaTime;
         
         // Check collision with fireballs
         let hitByFireball = false;
@@ -651,14 +655,14 @@ function update() {
     });
     
     dragons.forEach((d, i) => {
-        d.x -= config.speed;
-        d.wingFlap += 0.15;
+        d.x -= config.speed * deltaTime;
+        d.wingFlap += 0.15 * deltaTime;
         
-        if (!d.isFiring && Math.random() < config.fireFreq) { 
+        if (!d.isFiring && Math.random() < config.fireFreq * deltaTime) { 
             d.isFiring = true; 
             d.fireTimer = 45; 
         }
-        if (d.isFiring) d.fireTimer--; 
+        if (d.isFiring) d.fireTimer -= deltaTime; 
         if (d.fireTimer <= 0) d.isFiring = false;
 
         // Check collision with fireballs
@@ -700,9 +704,9 @@ function update() {
     });
     
     toothFairies.forEach((fairy, i) => {
-        fairy.x -= config.speed;
-        fairy.wingFlap += fairy.wingSpeed;
-        fairy.shootTimer--;
+        fairy.x -= config.speed * deltaTime;
+        fairy.wingFlap += fairy.wingSpeed * deltaTime;
+        fairy.shootTimer -= deltaTime;
         
         // Shoot line of teeth horizontally (5 teeth in a horizontal line)
         if (fairy.shootTimer <= 0 && fairy.x < canvas.width - 100) {
@@ -755,9 +759,9 @@ function update() {
     });
     
     teeth.forEach((tooth, i) => {
-        tooth.x += tooth.vx;
-        tooth.y += tooth.vy;
-        tooth.spin += tooth.spinSpeed;
+        tooth.x += tooth.vx * deltaTime;
+        tooth.y += tooth.vy * deltaTime;
+        tooth.spin += tooth.spinSpeed * deltaTime;
         
         // Check collision with fireballs
         let hitByFireball = false;
@@ -786,9 +790,9 @@ function update() {
         if (tooth.x < -50) teeth.splice(i, 1);
     });
     
-    planets.forEach(p => p.angle += p.speed);
+    planets.forEach(p => p.angle += p.speed * deltaTime);
     snow.forEach(p => { 
-        p.y += p.v; 
+        p.y += p.v * deltaTime; 
         if (p.y > canvas.height) p.y = -10; 
     });
     
@@ -1101,6 +1105,12 @@ function draw() {
 
 function animate() { 
     if (!gameActive) return; 
+    
+    const currentTime = performance.now();
+    const rawDelta = (currentTime - lastFrameTime) / 16.67; // Normalize to 60fps
+    deltaTime = Math.min(rawDelta, 2); // Cap at 2x to prevent huge jumps
+    lastFrameTime = currentTime;
+    
     update(); 
     draw(); 
     requestAnimationFrame(animate); 

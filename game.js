@@ -241,16 +241,20 @@ let gracePeriod = 120; // 2 seconds at 60fps
 let gracePeriodActive = false;
 let lastFrameTime = 0;
 let deltaTime = 0;
-let gameStarted = false; // NEW: Track if player has tapped to start
+let gameStarted = false;
 
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
 let buildings = [], snow = [], planets = [], thunders = [], trees = [];
 let swords = [];
-let fireballs = []; // New array for eagle's fireballs
-let cherries = []; // Array for collectible cherries
-let bananas = []; // Array for collectible bananas
-let apples = []; // Array for collectible apples
+let fireballs = [];
+let cherries = [];
+let bananas = [];
+let apples = [];
+let grapes = []; // NEW: Added grapes
+let oranges = []; // NEW: Added oranges
+let strawberries = []; // NEW: Added strawberries
+let floatingPoints = []; // NEW: Array for floating point numbers
 
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
@@ -446,9 +450,10 @@ const handleInput = (e) => {
     if (!gameActive) return;
     if (e.cancelable) e.preventDefault();
     
-    // NEW: If game hasn't started yet, start it on first tap
+    // CHANGE 1: If game hasn't started yet, start it with upward velocity
     if (!gameStarted) {
         gameStarted = true;
+        eagle.velocity = eagle.lift; // Make bird go UP on first tap
         playFlapSound();
         return;
     }
@@ -504,7 +509,7 @@ function startGameFromLevel(lvl, level) {
     scoreElement.style.display = 'block';
     
     gameActive = true;
-    gameStarted = false; // NEW: Reset to require tap to start 
+    gameStarted = false;
     distance = levelDistances[level - 1];
     time = 0;
     points = 0;
@@ -524,6 +529,10 @@ function startGameFromLevel(lvl, level) {
     cherries = [];
     bananas = [];
     apples = [];
+    grapes = []; // NEW
+    oranges = []; // NEW
+    strawberries = []; // NEW
+    floatingPoints = []; // NEW
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -535,7 +544,6 @@ function startGameFromLevel(lvl, level) {
 function update() {
     const config = levels[difficulty];
     
-    // NEW: If game hasn't started yet, don't update anything
     if (!gameStarted) {
         return;
     }
@@ -632,6 +640,17 @@ function update() {
         }
     });
     
+    // NEW: Update floating points
+    floatingPoints.forEach((fp, i) => {
+        fp.y -= fp.vy * deltaTime;
+        fp.life -= deltaTime;
+        fp.alpha = fp.life / 60; // Fade out over 1 second
+        
+        if (fp.life <= 0) {
+            floatingPoints.splice(i, 1);
+        }
+    });
+    
     // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
         const gapSize = config.gapSize;
@@ -661,59 +680,58 @@ function update() {
             width: 50
         });
         
-        // Spawn fruits with different types and positions - ONLY in safe free space
+        // CHANGE 2: Spawn more varied fruits with different point values
         const fruitRoll = Math.random();
         
-        // Spawn fruit in the gap (50% chance) - centered in gap
-        if (Math.random() < 0.5) {
-            if (fruitRoll < 0.33) {
+        // Spawn fruit in the gap (60% chance - increased from 50%)
+        if (Math.random() < 0.6) {
+            const fruitType = Math.random();
+            let fruit;
+            
+            if (fruitType < 0.16) {
                 // Cherry - 10 points
-                cherries.push({
-                    x: canvas.width + 25,
-                    y: gapStart + gapSize / 2,
-                    size: 18
-                });
-            } else if (fruitRoll < 0.66) {
+                fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 18, type: 'cherry', points: 10 };
+                cherries.push(fruit);
+            } else if (fruitType < 0.32) {
                 // Banana - 15 points
-                bananas.push({
-                    x: canvas.width + 25,
-                    y: gapStart + gapSize / 2,
-                    size: 20
-                });
-            } else {
+                fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 20, type: 'banana', points: 15 };
+                bananas.push(fruit);
+            } else if (fruitType < 0.48) {
                 // Apple - 20 points
-                apples.push({
-                    x: canvas.width + 25,
-                    y: gapStart + gapSize / 2,
-                    size: 19
-                });
+                fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 19, type: 'apple', points: 20 };
+                apples.push(fruit);
+            } else if (fruitType < 0.64) {
+                // Grapes - 25 points
+                fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 18, type: 'grapes', points: 25 };
+                grapes.push(fruit);
+            } else if (fruitType < 0.82) {
+                // Orange - 30 points
+                fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 19, type: 'orange', points: 30 };
+                oranges.push(fruit);
+            } else {
+                // Strawberry - 35 points
+                fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 18, type: 'strawberry', points: 35 };
+                strawberries.push(fruit);
             }
         }
         
-        // Spawn fruit at different heights in the gap (30% chance) - still within safe gap area
-        if (Math.random() < 0.3) {
-            const fruitRoll2 = Math.random();
-            // Randomize position within the gap, keeping 30px margin from pipe edges
+        // Spawn fruit at different heights in the gap (40% chance - increased from 30%)
+        if (Math.random() < 0.4) {
+            const fruitType2 = Math.random();
             const safeY = gapStart + 30 + Math.random() * (gapSize - 60);
             
-            if (fruitRoll2 < 0.33) {
-                cherries.push({
-                    x: canvas.width + 25,
-                    y: safeY,
-                    size: 18
-                });
-            } else if (fruitRoll2 < 0.66) {
-                bananas.push({
-                    x: canvas.width + 25,
-                    y: safeY,
-                    size: 20
-                });
+            if (fruitType2 < 0.16) {
+                cherries.push({ x: canvas.width + 25, y: safeY, size: 18, type: 'cherry', points: 10 });
+            } else if (fruitType2 < 0.32) {
+                bananas.push({ x: canvas.width + 25, y: safeY, size: 20, type: 'banana', points: 15 });
+            } else if (fruitType2 < 0.48) {
+                apples.push({ x: canvas.width + 25, y: safeY, size: 19, type: 'apple', points: 20 });
+            } else if (fruitType2 < 0.64) {
+                grapes.push({ x: canvas.width + 25, y: safeY, size: 18, type: 'grapes', points: 25 });
+            } else if (fruitType2 < 0.82) {
+                oranges.push({ x: canvas.width + 25, y: safeY, size: 19, type: 'orange', points: 30 });
             } else {
-                apples.push({
-                    x: canvas.width + 25,
-                    y: safeY,
-                    size: 19
-                });
+                strawberries.push({ x: canvas.width + 25, y: safeY, size: 18, type: 'strawberry', points: 35 });
             }
         }
         
@@ -750,6 +768,8 @@ function update() {
         if (dist < cherry.size + 15) {
             points += 10;
             playCherrySound();
+            // NEW: Create floating point
+            floatingPoints.push({ x: cherry.x, y: cherry.y, value: '+10', life: 60, vy: 1.5, alpha: 1 });
             cherries.splice(i, 1);
         }
         
@@ -767,6 +787,8 @@ function update() {
         if (dist < banana.size + 15) {
             points += 15;
             playBananaSound();
+            // NEW: Create floating point
+            floatingPoints.push({ x: banana.x, y: banana.y, value: '+15', life: 60, vy: 1.5, alpha: 1 });
             bananas.splice(i, 1);
         }
         
@@ -784,10 +806,66 @@ function update() {
         if (dist < apple.size + 15) {
             points += 20;
             playAppleSound();
+            // NEW: Create floating point
+            floatingPoints.push({ x: apple.x, y: apple.y, value: '+20', life: 60, vy: 1.5, alpha: 1 });
             apples.splice(i, 1);
         }
         
         if (apple.x < -50) apples.splice(i, 1);
+    });
+    
+    // NEW: Update grapes
+    grapes.forEach((grape, i) => {
+        grape.x -= config.speed * deltaTime;
+        
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - grape.x, eagleCenterY - grape.y);
+        
+        if (dist < grape.size + 15) {
+            points += 25;
+            playCherrySound(); // Reuse sound
+            floatingPoints.push({ x: grape.x, y: grape.y, value: '+25', life: 60, vy: 1.5, alpha: 1 });
+            grapes.splice(i, 1);
+        }
+        
+        if (grape.x < -50) grapes.splice(i, 1);
+    });
+    
+    // NEW: Update oranges
+    oranges.forEach((orange, i) => {
+        orange.x -= config.speed * deltaTime;
+        
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - orange.x, eagleCenterY - orange.y);
+        
+        if (dist < orange.size + 15) {
+            points += 30;
+            playAppleSound(); // Reuse sound
+            floatingPoints.push({ x: orange.x, y: orange.y, value: '+30', life: 60, vy: 1.5, alpha: 1 });
+            oranges.splice(i, 1);
+        }
+        
+        if (orange.x < -50) oranges.splice(i, 1);
+    });
+    
+    // NEW: Update strawberries
+    strawberries.forEach((strawberry, i) => {
+        strawberry.x -= config.speed * deltaTime;
+        
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - strawberry.x, eagleCenterY - strawberry.y);
+        
+        if (dist < strawberry.size + 15) {
+            points += 35;
+            playBananaSound(); // Reuse sound
+            floatingPoints.push({ x: strawberry.x, y: strawberry.y, value: '+35', life: 60, vy: 1.5, alpha: 1 });
+            strawberries.splice(i, 1);
+        }
+        
+        if (strawberry.x < -50) strawberries.splice(i, 1);
     });
     
     // Spawn enemies during enemies phase - more balanced density
@@ -1096,22 +1174,39 @@ function draw() {
         }
     });
     
-    // Draw cherries
-    cherries.forEach(cherry => {
-        ctx.font = `${cherry.size}px serif`;
-        ctx.fillText("🍒", cherry.x - cherry.size/2, cherry.y + cherry.size/2);
-    });
+    // CHANGE 2: Draw fruits with golden framework
+    const drawFruitWithGlow = (emoji, x, y, size) => {
+        ctx.save();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#FFD700"; // Golden glow
+        ctx.font = `${size}px serif`;
+        ctx.fillText(emoji, x - size/2, y + size/2);
+        ctx.restore();
+    };
     
-    // Draw bananas
-    bananas.forEach(banana => {
-        ctx.font = `${banana.size}px serif`;
-        ctx.fillText("🍌", banana.x - banana.size/2, banana.y + banana.size/2);
-    });
+    cherries.forEach(cherry => drawFruitWithGlow("🍒", cherry.x, cherry.y, cherry.size));
+    bananas.forEach(banana => drawFruitWithGlow("🍌", banana.x, banana.y, banana.size));
+    apples.forEach(apple => drawFruitWithGlow("🍎", apple.x, apple.y, apple.size));
+    grapes.forEach(grape => drawFruitWithGlow("🍇", grape.x, grape.y, grape.size));
+    oranges.forEach(orange => drawFruitWithGlow("🍊", orange.x, orange.y, orange.size));
+    strawberries.forEach(strawberry => drawFruitWithGlow("🍓", strawberry.x, strawberry.y, strawberry.size));
     
-    // Draw apples
-    apples.forEach(apple => {
-        ctx.font = `${apple.size}px serif`;
-        ctx.fillText("🍎", apple.x - apple.size/2, apple.y + apple.size/2);
+    // NEW: Draw floating points (Mario-style)
+    floatingPoints.forEach(fp => {
+        ctx.save();
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = `rgba(255, 215, 0, ${fp.alpha})`; // Golden color with fade
+        ctx.strokeStyle = `rgba(0, 0, 0, ${fp.alpha})`;
+        ctx.lineWidth = 3;
+        ctx.textAlign = 'center';
+        
+        // Shadow for extra pop
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = `rgba(255, 215, 0, ${fp.alpha * 0.5})`;
+        
+        ctx.strokeText(fp.value, fp.x, fp.y);
+        ctx.fillText(fp.value, fp.x, fp.y);
+        ctx.restore();
     });
     
     snow.forEach(p => { 
@@ -1292,7 +1387,6 @@ function draw() {
 
     ctx.restore();
     
-    // NEW: Draw "TAP TO START" message if game hasn't started
     if (!gameStarted) {
         ctx.save();
         ctx.font = 'bold 48px Arial';
@@ -1376,7 +1470,7 @@ function animate() {
 
 function gameOver() {
     gameActive = false;
-    gameStarted = false; // NEW: Reset for next game
+    gameStarted = false;
     stopBackgroundMusic();
     playGameOverSound();
     scoreElement.style.display = 'none';

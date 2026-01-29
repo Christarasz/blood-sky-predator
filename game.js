@@ -510,7 +510,7 @@ function update() {
         }
     }
     
-    levelDisplay.innerText = `LEVEL: ${currentLevel}`;
+    levelDisplay.innerText = `LVL: ${currentLevel}`;
     
     phaseTimer += deltaTime;
     
@@ -840,7 +840,7 @@ function update() {
         if (p.y > canvas.height) p.y = -10; 
     });
     
-    scoreElement.innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | POINTS: ${points}`;
+    scoreElement.innerText = `DIST: ${Math.floor(distance)}m                    PTS: ${points}\nTIME: ${time}s`;
     frameCount++;
 }
 
@@ -1174,6 +1174,6 @@ function gameOver() {
     stopBackgroundMusic();
     playGameOverSound();
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('final-score-display').innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | LEVEL: ${currentLevel} | POINTS: ${points}`;
+    document.getElementById('final-score-display').innerText = `DIST: ${Math.floor(distance)}m | TIME: ${time}s | LVL: ${currentLevel} | PTS: ${points}`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }

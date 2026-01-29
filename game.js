@@ -124,15 +124,15 @@ function playFlapSound() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.03);
-    osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.06);
+    osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1400, audioCtx.currentTime + 0.05);
+    osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.1);
     gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.08);
+    osc.stop(audioCtx.currentTime + 0.12);
 }
 
 function playEagleScreech() {
@@ -254,6 +254,7 @@ let apples = []; // Array for collectible apples
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
     gravity: 0.5, lift: -4, velocity: 0, 
+    rotation: 0,
     isAttacking: false, attackTimer: 0, shieldActive: false, shieldTimer: 0
 };
 
@@ -517,6 +518,7 @@ function startGameFromLevel(lvl, level) {
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
+    eagle.rotation = 0;
     
     animate();
 }
@@ -540,9 +542,19 @@ function update() {
             eagle.velocity += eagle.gravity * deltaTime;
         }
         eagle.y += eagle.velocity * deltaTime;
+        
+        // Update rotation based on velocity (Flappy Bird style)
+        if (eagle.velocity < 0) {
+            // Rising - tilt up
+            eagle.rotation = Math.max(-0.5, eagle.velocity * 0.05);
+        } else {
+            // Falling - tilt down
+            eagle.rotation = Math.min(1.2, eagle.velocity * 0.08);
+        }
     } else {
         // During grace period, keep eagle at starting position
         eagle.velocity = 0;
+        eagle.rotation = 0;
     }
     
     if (eagle.shieldActive) { 
@@ -1184,6 +1196,7 @@ function draw() {
     // Draw FANCY HORIZONTAL BIRD with gold framework (small/no wings)
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
+    ctx.rotate(eagle.rotation); // Apply rotation based on velocity
     ctx.scale(0.75, 0.75); // Make bird smaller
     
     // Golden framework glow

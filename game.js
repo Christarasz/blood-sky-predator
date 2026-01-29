@@ -3,9 +3,14 @@ const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score-board');
 const levelDisplay = document.getElementById('level-display');
 
-// Make score font smaller for mobile
-scoreElement.style.fontSize = '14px';
-scoreElement.style.lineHeight = '1.3';
+// Hide the static level display
+levelDisplay.style.display = 'none';
+
+// Make score font smaller, white, and optimal for phone
+scoreElement.style.fontSize = '12px';
+scoreElement.style.lineHeight = '1.4';
+scoreElement.style.color = 'white';
+scoreElement.style.display = 'none'; // Hidden by default
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -253,8 +258,8 @@ const eagle = {
 };
 
 const levelDistances = [
-    0, 420, 840, 1260, 1680, 2100, 2520, 2940, 3360, 3780,
-    4200, 4620, 5040, 5460, 5880, 6300, 6720, 7140, 7560, 7980
+    0, 210, 420, 630, 840, 1050, 1260, 1470, 1680, 1890,
+    2100, 2310, 2520, 2730, 2940, 3150, 3360, 3570, 3780, 3990
 ];
 
 const levels = { 
@@ -348,6 +353,7 @@ function unlockLevel(level) {
 function backToMenu() {
     document.getElementById('level-select').style.display = 'none';
     document.getElementById('menu').style.display = 'block';
+    scoreElement.style.display = 'none';
 }
 
 function showLevelSelect(diff) {
@@ -486,6 +492,7 @@ function startGameFromLevel(lvl, level) {
     document.getElementById('menu').style.display = 'none';
     document.getElementById('level-select').style.display = 'none';
     document.getElementById('game-over').style.display = 'none';
+    scoreElement.style.display = 'block';
     
     gameActive = true; 
     distance = levelDistances[level - 1];
@@ -555,13 +562,12 @@ function update() {
     distance += config.speed * 0.1 * deltaTime;
     if (frameCount % 60 === 0) time++;
     
-    for(let i = currentLevel; i < 20; i++) {
-        if (distance >= levelDistances[i]) {
-            currentLevel = i + 1;
-            unlockLevel(currentLevel);
-            playLevelUpSound();
-            break;
-        }
+    // Level up every 60 seconds
+    const targetLevel = Math.floor(time / 60) + 1;
+    if (targetLevel > currentLevel && targetLevel <= 20) {
+        currentLevel = targetLevel;
+        unlockLevel(currentLevel);
+        playLevelUpSound();
     }
     
     // Level now shown in scoreElement
@@ -975,7 +981,7 @@ function update() {
         if (p.y > canvas.height) p.y = -10; 
     });
     
-    scoreElement.innerText = `Distance: ${Math.floor(distance)}m                                        Level: ${currentLevel}\nTime: ${time}s                                                 \n                                                                           Points: ${points}`;
+    scoreElement.innerText = `Level: ${currentLevel}\nDistance: ${Math.floor(distance)}m\nPoints: ${points}`;
     frameCount++;
 }
 
@@ -1320,7 +1326,8 @@ function gameOver() {
     gameActive = false;
     stopBackgroundMusic();
     playGameOverSound();
+    scoreElement.style.display = 'none';
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('final-score-display').innerText = `Distance: ${Math.floor(distance)}m | Time: ${time}s | Level: ${currentLevel} | Points: ${points}`;
+    document.getElementById('final-score-display').innerText = `Distance: ${Math.floor(distance)}m | Level: ${currentLevel} | Points: ${points}`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }

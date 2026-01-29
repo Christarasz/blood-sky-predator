@@ -69,6 +69,20 @@ function startMusic() {
     playBackgroundMusic();
 }
 
+function playCherrySound() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1000, audioCtx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+}
+
 function playEagleScreech() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -167,7 +181,7 @@ function playGameOverSound() {
     });
 }
 
-let gameActive = false, frameCount = 0, distance = 0, time = 0;
+let gameActive = false, frameCount = 0, distance = 0, time = 0, points = 0;
 let lastTap = 0, isHoldingTap = false;
 let currentLevel = 1;
 let phaseTimer = 0, currentPhase = 'pipes';
@@ -181,6 +195,7 @@ let chimneyObstacles = [];
 let buildings = [], snow = [], planets = [], thunders = [], trees = [];
 let swords = [];
 let fireballs = []; // New array for eagle's fireballs
+let cherries = []; // Array for collectible cherries
 
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
@@ -194,9 +209,9 @@ const levelDistances = [
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 70, enemySpawnRate: 100, speed: 3.0, fireFreq: 0.003, maxEnemies: 3, swordSpawnRate: 110, gapSize: 100 }, 
-    medium: { obstacleSpawnRate: 55, enemySpawnRate: 80, speed: 3.0, fireFreq: 0.008, maxEnemies: 5, swordSpawnRate: 80, gapSize: 100 }, 
-    hard: { obstacleSpawnRate: 45, enemySpawnRate: 65, speed: 3.0, fireFreq: 0.015, maxEnemies: 7, swordSpawnRate: 60, gapSize: 100 } 
+    easy: { obstacleSpawnRate: 70, enemySpawnRate: 100, speed: 3.0, fireFreq: 0.003, maxEnemies: 3, swordSpawnRate: 110, gapSize: 130 }, 
+    medium: { obstacleSpawnRate: 55, enemySpawnRate: 80, speed: 3.0, fireFreq: 0.008, maxEnemies: 5, swordSpawnRate: 80, gapSize: 120 }, 
+    hard: { obstacleSpawnRate: 45, enemySpawnRate: 65, speed: 3.0, fireFreq: 0.015, maxEnemies: 7, swordSpawnRate: 60, gapSize: 110 } 
 };
 
 let difficulty = 'medium';
@@ -423,6 +438,7 @@ function startGameFromLevel(lvl, level) {
     gameActive = true; 
     distance = levelDistances[level - 1];
     time = 0;
+    points = 0;
     frameCount = 0;
     phaseTimer = 0;
     currentPhase = 'pipes';
@@ -436,6 +452,7 @@ function startGameFromLevel(lvl, level) {
     chimneyObstacles = []; thunders = [];
     swords = [];
     fireballs = [];
+    cherries = [];
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -531,7 +548,7 @@ function update() {
     
     // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
-        const gapSize = config.gapSize; // Now 120px - much more challenging!
+        const gapSize = config.gapSize;
         
         let gapStart;
         if (lastChimneyGapStart === null) {
@@ -539,7 +556,7 @@ function update() {
             gapStart = canvas.height / 2 - gapSize / 2;
         } else {
             // Subsequent chimneys - gradual change like Flappy Bird
-            const maxChange = 70;
+            const maxChange = 60;
             const minGap = 80;
             const maxGap = canvas.height - gapSize - 80;
             
@@ -557,6 +574,15 @@ function update() {
             gapSize: gapSize,
             width: 50
         });
+        
+        // Spawn cherry in the gap (30% chance)
+        if (Math.random() < 0.3) {
+            cherries.push({
+                x: canvas.width + 25,
+                y: gapStart + gapSize / 2,
+                size: 18
+            });
+        }
         
         lastChimneyGapStart = gapStart;
     }
@@ -577,6 +603,24 @@ function update() {
         }
         
         if (chimney.x < -100) chimneyObstacles.splice(i, 1);
+    });
+    
+    // Update cherries
+    cherries.forEach((cherry, i) => {
+        cherry.x -= config.speed * deltaTime;
+        
+        // Check collision with eagle
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - cherry.x, eagleCenterY - cherry.y);
+        
+        if (dist < cherry.size + 15) {
+            points += 10;
+            playCherrySound();
+            cherries.splice(i, 1);
+        }
+        
+        if (cherry.x < -50) cherries.splice(i, 1);
     });
     
     // Spawn enemies during enemies phase - more balanced density
@@ -796,7 +840,7 @@ function update() {
         if (p.y > canvas.height) p.y = -10; 
     });
     
-    scoreElement.innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s`;
+    scoreElement.innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | POINTS: ${points}`;
     frameCount++;
 }
 
@@ -883,6 +927,12 @@ function draw() {
             ctx.fillStyle = "#cc00cc";
             ctx.fillRect(chimney.x - 5, bottomY, chimney.width + 10, 10);
         }
+    });
+    
+    // Draw cherries
+    cherries.forEach(cherry => {
+        ctx.font = `${cherry.size}px serif`;
+        ctx.fillText("🍒", cherry.x - cherry.size/2, cherry.y + cherry.size/2);
     });
     
     snow.forEach(p => { 
@@ -992,72 +1042,72 @@ function draw() {
         ctx.shadowColor = "#FF4500"; // Orange-red glow when throwing fire
     }
         
-        // Draw fancy red bird - horizontal orientation, optimized for pipeline game
+    // Draw fancy red bird - horizontal orientation, optimized for pipeline game
     ctx.filter = 'brightness(1.1) contrast(1.2)'; // Vibrant red bird
 
-    // Body (streamlined horizontal oval - compact for pipelines)
+    // Body (streamlined horizontal oval - compact for pipelines) - 30% increase
     ctx.beginPath();
-    ctx.ellipse(0, 0, 21, 12, 0, 0, Math.PI * 2); // Increased from 14x8 to 21x12
+    ctx.ellipse(0, 0, 18.2, 10.4, 0, 0, Math.PI * 2); // 14*1.3=18.2, 8*1.3=10.4
     ctx.fillStyle = '#DC143C'; // Crimson red
     ctx.fill();
     ctx.strokeStyle = '#8B0000'; // Dark red outline
-    ctx.lineWidth = 2.25; // Increased from 1.5
+    ctx.lineWidth = 1.95; // 1.5*1.3
     ctx.stroke();
 
-    // Head (proportional circle at front)
+    // Head (proportional circle at front) - 30% increase
     ctx.beginPath();
-    ctx.arc(18, 0, 12, 0, Math.PI * 2); // Increased from 12, 0, 8
+    ctx.arc(15.6, 0, 10.4, 0, Math.PI * 2); // 12*1.3=15.6, 8*1.3=10.4
     ctx.fillStyle = '#DC143C'; // Same red
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
     ctx.stroke();
 
-    // Beak (pointing right - golden/orange)
+    // Beak (pointing right - golden/orange) - 30% increase
     ctx.beginPath();
-    ctx.moveTo(27, 0); // Increased from 18
-    ctx.lineTo(36, -3.75); // Increased from 24, -2.5
-    ctx.lineTo(36, 3.75); // Increased from 24, 2.5
+    ctx.moveTo(23.4, 0); // 18*1.3
+    ctx.lineTo(31.2, -3.25); // 24*1.3, -2.5*1.3
+    ctx.lineTo(31.2, 3.25);
     ctx.closePath();
     ctx.fillStyle = '#FF8C00'; // Orange beak
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 1.5; // Increased from 1
+    ctx.lineWidth = 1.3; // 1*1.3
     ctx.stroke();
 
-    // Eye - big and white with black pupil
+    // Eye - big and white with black pupil - 30% increase
     ctx.beginPath();
-    ctx.arc(21, -2.25, 6.75, 0, Math.PI * 2); // Increased from 14, -1.5, 4.5
+    ctx.arc(18.2, -1.95, 5.85, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 4.5*1.3
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 0.75; // Increased from 0.5
+    ctx.lineWidth = 0.65; // 0.5*1.3
     ctx.stroke();
 
-    // Pupil
+    // Pupil - 30% increase
     ctx.beginPath();
-    ctx.arc(21, -2.25, 3, 0, Math.PI * 2); // Increased from 14, -1.5, 2
+    ctx.arc(18.2, -1.95, 2.6, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 2*1.3
     ctx.fillStyle = '#000';
     ctx.fill();
 
-    // Tail feathers (sleek, flowing back)
+    // Tail feathers (sleek, flowing back) - 30% increase
     ctx.beginPath();
-    ctx.moveTo(-21, 0); // Increased from -14
-    ctx.lineTo(-30, -7.5); // Increased from -20, -5
-    ctx.lineTo(-27, 0); // Increased from -18
-    ctx.lineTo(-30, 7.5); // Increased from -20, 5
+    ctx.moveTo(-18.2, 0); // -14*1.3
+    ctx.lineTo(-26, -6.5); // -20*1.3, -5*1.3
+    ctx.lineTo(-23.4, 0); // -18*1.3
+    ctx.lineTo(-26, 6.5); // -20*1.3, 5*1.3
     ctx.closePath();
     ctx.fillStyle = '#B22222'; // Darker red for tail
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
     ctx.stroke();
 
-    // Small wing accent (single top wing for detail)
+    // Small wing accent (single top wing for detail) - 30% increase
     ctx.beginPath();
-    ctx.ellipse(0, -9, 7.5, 4.5, -0.2, 0, Math.PI * 2); // Increased from 0, -6, 5, 3
+    ctx.ellipse(0, -7.8, 6.5, 3.9, -0.2, 0, Math.PI * 2); // 0, -6*1.3, 5*1.3, 3*1.3
     ctx.fillStyle = '#B22222'; // Darker red
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 1.2; // Increased from 0.8
+    ctx.lineWidth = 1.04; // 0.8*1.3
     ctx.stroke();
 
     ctx.restore();
@@ -1124,6 +1174,6 @@ function gameOver() {
     stopBackgroundMusic();
     playGameOverSound();
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('final-score-display').innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | LEVEL: ${currentLevel}`;
+    document.getElementById('final-score-display').innerText = `DISTANCE: ${Math.floor(distance)}m | TIME: ${time}s | LEVEL: ${currentLevel} | POINTS: ${points}`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }

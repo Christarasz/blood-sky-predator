@@ -241,6 +241,7 @@ let gracePeriod = 120; // 2 seconds at 60fps
 let gracePeriodActive = false;
 let lastFrameTime = 0;
 let deltaTime = 0;
+let gameStarted = false; // NEW: Track if player has tapped to start
 
 let dragons = [], toothFairies = [], teeth = [];
 let chimneyObstacles = [];
@@ -445,6 +446,13 @@ const handleInput = (e) => {
     if (!gameActive) return;
     if (e.cancelable) e.preventDefault();
     
+    // NEW: If game hasn't started yet, start it on first tap
+    if (!gameStarted) {
+        gameStarted = true;
+        playFlapSound();
+        return;
+    }
+    
     const now = Date.now();
     isHoldingTap = true;
     
@@ -495,7 +503,8 @@ function startGameFromLevel(lvl, level) {
     document.getElementById('game-over').style.display = 'none';
     scoreElement.style.display = 'block';
     
-    gameActive = true; 
+    gameActive = true;
+    gameStarted = false; // NEW: Reset to require tap to start 
     distance = levelDistances[level - 1];
     time = 0;
     points = 0;
@@ -525,6 +534,11 @@ function startGameFromLevel(lvl, level) {
 
 function update() {
     const config = levels[difficulty];
+    
+    // NEW: If game hasn't started yet, don't update anything
+    if (!gameStarted) {
+        return;
+    }
     
     // Handle grace period countdown
     if (gracePeriodActive) {
@@ -1278,6 +1292,31 @@ function draw() {
 
     ctx.restore();
     
+    // NEW: Draw "TAP TO START" message if game hasn't started
+    if (!gameStarted) {
+        ctx.save();
+        ctx.font = 'bold 48px Arial';
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 4;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const text = 'TAP TO START';
+        const x = canvas.width / 2;
+        const y = canvas.height / 2 + 80;
+        
+        // Pulsing effect
+        const scale = 1 + Math.sin(frameCount * 0.1) * 0.1;
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        
+        ctx.strokeText(text, 0, 0);
+        ctx.fillText(text, 0, 0);
+        
+        ctx.restore();
+    }
+    
     dragons.forEach(d => {
         ctx.save();
         ctx.translate(d.x + 27, d.y + 25);
@@ -1337,6 +1376,7 @@ function animate() {
 
 function gameOver() {
     gameActive = false;
+    gameStarted = false; // NEW: Reset for next game
     stopBackgroundMusic();
     playGameOverSound();
     scoreElement.style.display = 'none';

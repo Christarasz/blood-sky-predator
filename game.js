@@ -453,7 +453,9 @@ const handleInput = (e) => {
     // CHANGE 1: If game hasn't started yet, start it with upward velocity
     if (!gameStarted) {
         gameStarted = true;
+        gracePeriodActive = false; // End grace period immediately so physics applies
         eagle.velocity = eagle.lift; // Make bird go UP on first tap
+        isHoldingTap = true; // Set holding to maintain upward movement
         playFlapSound();
         return;
     }

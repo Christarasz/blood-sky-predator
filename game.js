@@ -991,72 +991,75 @@ function draw() {
         ctx.shadowBlur = 45; 
         ctx.shadowColor = "#FF4500"; // Orange-red glow when throwing fire
     }
-    
-    // Draw fancy black bird with minimal wings - horizontal orientation
-    ctx.filter = 'brightness(0.3) contrast(1.5)'; // Black/dark fancy bird
-    
-    // Body (streamlined horizontal oval)
+        
+        // Draw fancy red bird - horizontal orientation, optimized for pipeline game
+    ctx.filter = 'brightness(1.1) contrast(1.2)'; // Vibrant red bird
+
+    // Body (streamlined horizontal oval - compact for pipelines)
     ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a1a'; // Dark black
+    ctx.ellipse(0, 0, 21, 12, 0, 0, Math.PI * 2); // Increased from 14x8 to 21x12
+    ctx.fillStyle = '#DC143C'; // Crimson red
     ctx.fill();
-    ctx.strokeStyle = '#FFD700'; // Gold outline
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#8B0000'; // Dark red outline
+    ctx.lineWidth = 2.25; // Increased from 1.5
     ctx.stroke();
-    
-    // Head (smaller circle at front)
+
+    // Head (proportional circle at front)
     ctx.beginPath();
-    ctx.arc(14, 0, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#2a2a2a';
+    ctx.arc(18, 0, 12, 0, Math.PI * 2); // Increased from 12, 0, 8
+    ctx.fillStyle = '#DC143C'; // Same red
     ctx.fill();
-    ctx.strokeStyle = '#FFD700';
+    ctx.strokeStyle = '#8B0000';
     ctx.stroke();
-    
-    // Beak (pointing right)
+
+    // Beak (pointing right - golden/orange)
     ctx.beginPath();
-    ctx.moveTo(19, 0);
-    ctx.lineTo(24, -2);
-    ctx.lineTo(24, 2);
+    ctx.moveTo(27, 0); // Increased from 18
+    ctx.lineTo(36, -3.75); // Increased from 24, -2.5
+    ctx.lineTo(36, 3.75); // Increased from 24, 2.5
     ctx.closePath();
-    ctx.fillStyle = '#FFD700'; // Gold beak
+    ctx.fillStyle = '#FF8C00'; // Orange beak
     ctx.fill();
-    
-    // Eye - bigger and white
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 1.5; // Increased from 1
+    ctx.stroke();
+
+    // Eye - big and white with black pupil
     ctx.beginPath();
-    ctx.arc(16, -2, 3.5, 0, Math.PI * 2);
+    ctx.arc(21, -2.25, 6.75, 0, Math.PI * 2); // Increased from 14, -1.5, 4.5
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
-    
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 0.75; // Increased from 0.5
+    ctx.stroke();
+
+    // Pupil
     ctx.beginPath();
-    ctx.arc(16, -2, 1.8, 0, Math.PI * 2);
+    ctx.arc(21, -2.25, 3, 0, Math.PI * 2); // Increased from 14, -1.5, 2
     ctx.fillStyle = '#000';
     ctx.fill();
-    
-    // Tail feathers (back)
+
+    // Tail feathers (sleek, flowing back)
     ctx.beginPath();
-    ctx.moveTo(-16, 0);
-    ctx.lineTo(-22, -4);
-    ctx.lineTo(-20, 0);
-    ctx.lineTo(-22, 4);
+    ctx.moveTo(-21, 0); // Increased from -14
+    ctx.lineTo(-30, -7.5); // Increased from -20, -5
+    ctx.lineTo(-27, 0); // Increased from -18
+    ctx.lineTo(-30, 7.5); // Increased from -20, 5
     ctx.closePath();
-    ctx.fillStyle = '#2a2a2a';
+    ctx.fillStyle = '#B22222'; // Darker red for tail
     ctx.fill();
-    ctx.strokeStyle = '#FFD700';
+    ctx.strokeStyle = '#8B0000';
     ctx.stroke();
-    
-    // Minimal wings (very small, barely visible)
-    // Top wing stub
+
+    // Small wing accent (single top wing for detail)
     ctx.beginPath();
-    ctx.ellipse(2, -8, 3, 2, -0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#2a2a2a';
+    ctx.ellipse(0, -9, 7.5, 4.5, -0.2, 0, Math.PI * 2); // Increased from 0, -6, 5, 3
+    ctx.fillStyle = '#B22222'; // Darker red
     ctx.fill();
-    
-    // Bottom wing stub
-    ctx.beginPath();
-    ctx.ellipse(2, 8, 3, 2, 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#2a2a2a';
-    ctx.fill();
-    
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 1.2; // Increased from 0.8
+    ctx.stroke();
+
     ctx.restore();
     
     dragons.forEach(d => {

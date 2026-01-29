@@ -11,10 +11,10 @@ body {
     width: 100vw; 
     height: 100vh;
     background: linear-gradient(
-        #4EC0CA 0%, 
-        #4EC0CA 70%, 
-        #DED895 70%, 
-        #DED895 100%
+        #007FFF 0%, 
+        #007FFF 70%, 
+        #FA7000 70%, 
+        #FA7000 100%
     );
     display: flex; 
     justify-content: center; 

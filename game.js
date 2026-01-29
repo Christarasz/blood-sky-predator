@@ -3,6 +3,10 @@ const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score-board');
 const levelDisplay = document.getElementById('level-display');
 
+// Make score font smaller for mobile
+scoreElement.style.fontSize = '14px';
+scoreElement.style.lineHeight = '1.3';
+
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 let musicTimeout = null;
@@ -81,6 +85,49 @@ function playCherrySound() {
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function playBananaSound() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(900, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+}
+
+function playAppleSound() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.06);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.18);
+}
+
+function playFlapSound() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.03);
+    osc.frequency.setValueAtTime(700, audioCtx.currentTime + 0.06);
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.08);
 }
 
 function playEagleScreech() {
@@ -196,6 +243,8 @@ let buildings = [], snow = [], planets = [], thunders = [], trees = [];
 let swords = [];
 let fireballs = []; // New array for eagle's fireballs
 let cherries = []; // Array for collectible cherries
+let bananas = []; // Array for collectible bananas
+let apples = []; // Array for collectible apples
 
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
@@ -408,6 +457,9 @@ const handleInput = (e) => {
         });
         
         playFireThrowSound();
+    } else {
+        // Single tap - play flap sound
+        playFlapSound();
     }
     lastTap = now;
 };
@@ -453,6 +505,8 @@ function startGameFromLevel(lvl, level) {
     swords = [];
     fireballs = [];
     cherries = [];
+    bananas = [];
+    apples = [];
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -575,13 +629,60 @@ function update() {
             width: 50
         });
         
-        // Spawn cherry in the gap (30% chance)
+        // Spawn fruits with different types and positions - ONLY in safe free space
+        const fruitRoll = Math.random();
+        
+        // Spawn fruit in the gap (50% chance) - centered in gap
+        if (Math.random() < 0.5) {
+            if (fruitRoll < 0.33) {
+                // Cherry - 10 points
+                cherries.push({
+                    x: canvas.width + 25,
+                    y: gapStart + gapSize / 2,
+                    size: 18
+                });
+            } else if (fruitRoll < 0.66) {
+                // Banana - 15 points
+                bananas.push({
+                    x: canvas.width + 25,
+                    y: gapStart + gapSize / 2,
+                    size: 20
+                });
+            } else {
+                // Apple - 20 points
+                apples.push({
+                    x: canvas.width + 25,
+                    y: gapStart + gapSize / 2,
+                    size: 19
+                });
+            }
+        }
+        
+        // Spawn fruit at different heights in the gap (30% chance) - still within safe gap area
         if (Math.random() < 0.3) {
-            cherries.push({
-                x: canvas.width + 25,
-                y: gapStart + gapSize / 2,
-                size: 18
-            });
+            const fruitRoll2 = Math.random();
+            // Randomize position within the gap, keeping 30px margin from pipe edges
+            const safeY = gapStart + 30 + Math.random() * (gapSize - 60);
+            
+            if (fruitRoll2 < 0.33) {
+                cherries.push({
+                    x: canvas.width + 25,
+                    y: safeY,
+                    size: 18
+                });
+            } else if (fruitRoll2 < 0.66) {
+                bananas.push({
+                    x: canvas.width + 25,
+                    y: safeY,
+                    size: 20
+                });
+            } else {
+                apples.push({
+                    x: canvas.width + 25,
+                    y: safeY,
+                    size: 19
+                });
+            }
         }
         
         lastChimneyGapStart = gapStart;
@@ -621,6 +722,40 @@ function update() {
         }
         
         if (cherry.x < -50) cherries.splice(i, 1);
+    });
+    
+    // Update bananas
+    bananas.forEach((banana, i) => {
+        banana.x -= config.speed * deltaTime;
+        
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - banana.x, eagleCenterY - banana.y);
+        
+        if (dist < banana.size + 15) {
+            points += 15;
+            playBananaSound();
+            bananas.splice(i, 1);
+        }
+        
+        if (banana.x < -50) bananas.splice(i, 1);
+    });
+    
+    // Update apples
+    apples.forEach((apple, i) => {
+        apple.x -= config.speed * deltaTime;
+        
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - apple.x, eagleCenterY - apple.y);
+        
+        if (dist < apple.size + 15) {
+            points += 20;
+            playAppleSound();
+            apples.splice(i, 1);
+        }
+        
+        if (apple.x < -50) apples.splice(i, 1);
     });
     
     // Spawn enemies during enemies phase - more balanced density
@@ -933,6 +1068,18 @@ function draw() {
     cherries.forEach(cherry => {
         ctx.font = `${cherry.size}px serif`;
         ctx.fillText("🍒", cherry.x - cherry.size/2, cherry.y + cherry.size/2);
+    });
+    
+    // Draw bananas
+    bananas.forEach(banana => {
+        ctx.font = `${banana.size}px serif`;
+        ctx.fillText("🍌", banana.x - banana.size/2, banana.y + banana.size/2);
+    });
+    
+    // Draw apples
+    apples.forEach(apple => {
+        ctx.font = `${apple.size}px serif`;
+        ctx.fillText("🍎", apple.x - apple.size/2, apple.y + apple.size/2);
     });
     
     snow.forEach(p => { 

@@ -204,14 +204,14 @@ const eagle = {
 };
 
 const levelDistances = [
-    0, 1050, 2100, 3150, 4200, 5250, 6300, 7350, 8400, 9450,
-    10500, 11550, 12600, 13650, 14700, 15750, 16800, 17850, 18900, 19950
+    0, 420, 840, 1260, 1680, 2100, 2520, 2940, 3360, 3780,
+    4200, 4620, 5040, 5460, 5880, 6300, 6720, 7140, 7560, 7980
 ];
 
 const levels = { 
-    easy: { obstacleSpawnRate: 70, enemySpawnRate: 100, speed: 3.0, fireFreq: 0.003, maxEnemies: 3, swordSpawnRate: 110, gapSize: 130 }, 
-    medium: { obstacleSpawnRate: 55, enemySpawnRate: 80, speed: 3.0, fireFreq: 0.008, maxEnemies: 5, swordSpawnRate: 80, gapSize: 120 }, 
-    hard: { obstacleSpawnRate: 45, enemySpawnRate: 65, speed: 3.0, fireFreq: 0.015, maxEnemies: 7, swordSpawnRate: 60, gapSize: 110 } 
+    easy: { obstacleSpawnRate: 70, enemySpawnRate: 100, speed: 3.0, fireFreq: 0.003, maxEnemies: 3, swordSpawnRate: 110, gapSize: 145 }, 
+    medium: { obstacleSpawnRate: 55, enemySpawnRate: 80, speed: 3.0, fireFreq: 0.008, maxEnemies: 5, swordSpawnRate: 80, gapSize: 135 }, 
+    hard: { obstacleSpawnRate: 45, enemySpawnRate: 65, speed: 3.0, fireFreq: 0.015, maxEnemies: 7, swordSpawnRate: 60, gapSize: 125 } 
 };
 
 let difficulty = 'medium';
@@ -510,7 +510,7 @@ function update() {
         }
     }
     
-    levelDisplay.innerText = `LVL: ${currentLevel}`;
+    // Level now shown in scoreElement
     
     phaseTimer += deltaTime;
     
@@ -840,7 +840,7 @@ function update() {
         if (p.y > canvas.height) p.y = -10; 
     });
     
-    scoreElement.innerText = `DIST: ${Math.floor(distance)}m                    PTS: ${points}\nTIME: ${time}s`;
+    scoreElement.innerText = `Distance: ${Math.floor(distance)}m                                        Level: ${currentLevel}\nTime: ${time}s                                                 \n                                                                           Points: ${points}`;
     frameCount++;
 }
 
@@ -1174,6 +1174,6 @@ function gameOver() {
     stopBackgroundMusic();
     playGameOverSound();
     document.getElementById('game-over').style.display = 'block';
-    document.getElementById('final-score-display').innerText = `DIST: ${Math.floor(distance)}m | TIME: ${time}s | LVL: ${currentLevel} | PTS: ${points}`;
+    document.getElementById('final-score-display').innerText = `Distance: ${Math.floor(distance)}m | Time: ${time}s | Level: ${currentLevel} | Points: ${points}`;
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }

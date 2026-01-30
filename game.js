@@ -3,14 +3,11 @@ const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score-board');
 const levelDisplay = document.getElementById('level-display');
 
-// Hide the static level display
 levelDisplay.style.display = 'none';
-
-// Make score font smaller, white, and optimal for phone
 scoreElement.style.fontSize = '12px';
 scoreElement.style.lineHeight = '1.4';
 scoreElement.style.color = 'white';
-scoreElement.style.display = 'none'; // Hidden by default
+scoreElement.style.display = 'none';
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -29,18 +26,10 @@ function playBackgroundMusic() {
     if (!musicPlaying) return;
     
     const melody = [
-        {freq: 659.25, dur: 0.15}, // E5
-        {freq: 659.25, dur: 0.15}, // E5
-        {freq: 0, dur: 0.15},       // rest
-        {freq: 659.25, dur: 0.15}, // E5
-        {freq: 0, dur: 0.15},       // rest
-        {freq: 523.25, dur: 0.15}, // C5
-        {freq: 659.25, dur: 0.15}, // E5
-        {freq: 0, dur: 0.15},       // rest
-        {freq: 783.99, dur: 0.15}, // G5
-        {freq: 0, dur: 0.45},       // rest
-        {freq: 392.00, dur: 0.15}, // G4
-        {freq: 0, dur: 0.45}        // rest
+        {freq: 659.25, dur: 0.15}, {freq: 659.25, dur: 0.15}, {freq: 0, dur: 0.15},
+        {freq: 659.25, dur: 0.15}, {freq: 0, dur: 0.15}, {freq: 523.25, dur: 0.15},
+        {freq: 659.25, dur: 0.15}, {freq: 0, dur: 0.15}, {freq: 783.99, dur: 0.15},
+        {freq: 0, dur: 0.45}, {freq: 392.00, dur: 0.15}, {freq: 0, dur: 0.45}
     ];
     
     let time = audioCtx.currentTime;
@@ -49,16 +38,12 @@ function playBackgroundMusic() {
         if (note.freq > 0) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
             osc.type = 'square';
             osc.frequency.value = note.freq;
-            
             gain.gain.setValueAtTime(0.06, time);
             gain.gain.exponentialRampToValueAtTime(0.001, time + note.dur);
-            
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
             osc.start(time);
             osc.stop(time + note.dur);
         }
@@ -67,9 +52,7 @@ function playBackgroundMusic() {
     
     const totalDuration = melody.reduce((sum, n) => sum + n.dur, 0) * 1000;
     musicTimeout = setTimeout(() => {
-        if (musicPlaying && gameActive) {
-            playBackgroundMusic();
-        }
+        if (musicPlaying && gameActive) playBackgroundMusic();
     }, totalDuration);
 }
 
@@ -151,36 +134,22 @@ function playEagleScreech() {
 }
 
 function playFireThrowSound() {
-    // Whoosh fire sound
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
-    
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(150, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
-    
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(800, audioCtx.currentTime);
     filter.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.3);
-    
     gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-    
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(audioCtx.destination);
-    
     osc.start();
     osc.stop(audioCtx.currentTime + 0.3);
-}
-
-function playShieldBreakSound() {
-    // Removed - now just vibration
-}
-
-function playGlassBreakSound() {
-    // Removed - now just vibration
 }
 
 function playLevelUpSound() {
@@ -198,36 +167,23 @@ function playLevelUpSound() {
     osc.stop(audioCtx.currentTime + 0.3);
 }
 
-function playBreakingGlassSound() {
-    // Removed - now just vibration
-}
-
 function playGameOverSound() {
     const notes = [
-        {freq: 523, time: 0, dur: 0.15},      // C
-        {freq: 494, time: 0.15, dur: 0.15},   // B
-        {freq: 466, time: 0.3, dur: 0.15},    // Bb
-        {freq: 440, time: 0.45, dur: 0.15},   // A
-        {freq: 392, time: 0.6, dur: 0.15},    // G
-        {freq: 349, time: 0.75, dur: 0.15},   // F
-        {freq: 330, time: 0.9, dur: 0.3},     // E
-        {freq: 262, time: 1.2, dur: 0.5}      // Low C (dramatic end)
+        {freq: 523, time: 0, dur: 0.15}, {freq: 494, time: 0.15, dur: 0.15},
+        {freq: 466, time: 0.3, dur: 0.15}, {freq: 440, time: 0.45, dur: 0.15},
+        {freq: 392, time: 0.6, dur: 0.15}, {freq: 349, time: 0.75, dur: 0.15},
+        {freq: 330, time: 0.9, dur: 0.3}, {freq: 262, time: 1.2, dur: 0.5}
     ];
-    
     notes.forEach(note => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        
         osc.type = 'square';
         osc.frequency.value = note.freq;
-        
         const startTime = audioCtx.currentTime + note.time;
         gain.gain.setValueAtTime(0.2, startTime);
         gain.gain.exponentialRampToValueAtTime(0.01, startTime + note.dur);
-        
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        
         osc.start(startTime);
         osc.stop(startTime + note.dur);
     });
@@ -237,7 +193,7 @@ let gameActive = false, frameCount = 0, distance = 0, time = 0, points = 0;
 let lastTap = 0, isHoldingTap = false;
 let currentLevel = 1;
 let phaseTimer = 0, currentPhase = 'pipes';
-let gracePeriod = 120; // 2 seconds at 60fps
+let gracePeriod = 120;
 let gracePeriodActive = false;
 let lastFrameTime = 0;
 let deltaTime = 0;
@@ -251,10 +207,11 @@ let fireballs = [];
 let cherries = [];
 let bananas = [];
 let apples = [];
-let grapes = []; // NEW: Added grapes
-let oranges = []; // NEW: Added oranges
-let strawberries = []; // NEW: Added strawberries
-let floatingPoints = []; // NEW: Array for floating point numbers
+let grapes = [];
+let oranges = [];
+let strawberries = [];
+let hearts = [];
+let floatingPoints = [];
 
 const eagle = { 
     x: 100, y: 0, w: 24, h: 20,
@@ -276,7 +233,6 @@ const levels = {
 
 let difficulty = 'medium';
 let selectedLevel = null;
-
 let lastChimneyGapStart = null;
 
 function initWorld() {
@@ -303,18 +259,16 @@ function initWorld() {
         });
     }
     
-    // Add bigger, dark green trees - taller than buildings
     for(let i = 0; i < buildingCount + 2; i++) {
-        const treeHeight = 120 + Math.random() * 80; // Much bigger trees (was 40+30)
+        const treeHeight = 120 + Math.random() * 80;
         trees.push({
-            x: i * 60 + 30, // Offset between buildings
+            x: i * 60 + 30,
             y: canvas.height - treeHeight - 50,
             height: treeHeight,
-            trunkWidth: 15 + Math.random() * 10 // Wider trunks for bigger trees
+            trunkWidth: 15 + Math.random() * 10
         });
     }
     
-    // More and bigger planets
     ["🪐", "🌑", "☄️", "🔴", "🌕", "⭐", "✨"].forEach((icon, i) => {
         planets.push({ 
             icon, 
@@ -327,7 +281,6 @@ function initWorld() {
         });
     });
     
-    // Add spaceships
     ["🛸", "🚀", "🛰️"].forEach((icon, i) => {
         planets.push({ 
             icon, 
@@ -343,9 +296,7 @@ function initWorld() {
 
 function getMaxUnlockedLevel() {
     const saved = localStorage.getItem('maxUnlockedLevel');
-    if (!saved || saved === null || saved === 'null') {
-        return 1;
-    }
+    if (!saved || saved === null || saved === 'null') return 1;
     return parseInt(saved);
 }
 
@@ -359,7 +310,12 @@ function unlockLevel(level) {
 function backToMenu() {
     document.getElementById('level-select').style.display = 'none';
     document.getElementById('menu').style.display = 'block';
+    document.getElementById('game-over').style.display = 'none';
     scoreElement.style.display = 'none';
+}
+
+function retryGame() {
+    startGameFromLevel(difficulty, currentLevel);
 }
 
 function showLevelSelect(diff) {
@@ -367,6 +323,7 @@ function showLevelSelect(diff) {
     selectedLevel = null;
     document.getElementById('menu').style.display = 'none';
     document.getElementById('level-select').style.display = 'block';
+    document.getElementById('game-over').style.display = 'none';
     
     const grid = document.getElementById('levels-grid');
     grid.innerHTML = '';
@@ -389,7 +346,6 @@ function showLevelSelect(diff) {
         grid.appendChild(btn);
     }
     
-    // Add Start Game button if it doesn't exist
     let startBtn = document.getElementById('start-game-btn');
     if (!startBtn) {
         startBtn = document.createElement('button');
@@ -418,19 +374,16 @@ function showLevelSelect(diff) {
 function selectLevel(level) {
     selectedLevel = level;
     
-    // Remove red background from all buttons
     const buttons = document.querySelectorAll('.level-button');
     buttons.forEach(btn => {
         btn.style.backgroundColor = '';
     });
     
-    // Add red background to selected button
     const selectedBtn = buttons[level - 1];
     if (selectedBtn) {
         selectedBtn.style.backgroundColor = 'red';
     }
     
-    // Show Start Game button
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) {
         startBtn.style.display = 'block';
@@ -450,12 +403,11 @@ const handleInput = (e) => {
     if (!gameActive) return;
     if (e.cancelable) e.preventDefault();
     
-    // CHANGE 1: If game hasn't started yet, start it with upward velocity
     if (!gameStarted) {
         gameStarted = true;
-        gracePeriodActive = false; // End grace period immediately so physics applies
-        eagle.velocity = eagle.lift; // Make bird go UP on first tap
-        isHoldingTap = true; // Set holding to maintain upward movement
+        gracePeriodActive = false;
+        eagle.velocity = eagle.lift;
+        isHoldingTap = true;
         playFlapSound();
         return;
     }
@@ -464,11 +416,9 @@ const handleInput = (e) => {
     isHoldingTap = true;
     
     if (now - lastTap < 220) { 
-        // Double tap - throw fire
         eagle.isAttacking = true; 
-        eagle.attackTimer = 30; // Short visual indicator
+        eagle.attackTimer = 30;
         
-        // Create fireball
         fireballs.push({
             x: eagle.x + eagle.w,
             y: eagle.y + eagle.h / 2,
@@ -480,7 +430,6 @@ const handleInput = (e) => {
         
         playFireThrowSound();
     } else {
-        // Single tap - play flap sound
         playFlapSound();
     }
     lastTap = now;
@@ -531,10 +480,11 @@ function startGameFromLevel(lvl, level) {
     cherries = [];
     bananas = [];
     apples = [];
-    grapes = []; // NEW
-    oranges = []; // NEW
-    strawberries = []; // NEW
-    floatingPoints = []; // NEW
+    grapes = [];
+    oranges = [];
+    strawberries = [];
+    hearts = [];
+    floatingPoints = [];
     
     eagle.y = canvas.height / 2; 
     eagle.velocity = 0;
@@ -550,7 +500,6 @@ function update() {
         return;
     }
     
-    // Handle grace period countdown
     if (gracePeriodActive) {
         gracePeriod -= deltaTime;
         if (gracePeriod <= 0) {
@@ -558,7 +507,6 @@ function update() {
         }
     }
     
-    // Apply physics only after grace period
     if (!gracePeriodActive) {
         if (isHoldingTap) {
             eagle.velocity = eagle.lift;
@@ -567,16 +515,12 @@ function update() {
         }
         eagle.y += eagle.velocity * deltaTime;
         
-        // Update rotation based on velocity (Flappy Bird style)
         if (eagle.velocity < 0) {
-            // Rising - tilt up
             eagle.rotation = Math.max(-0.5, eagle.velocity * 0.05);
         } else {
-            // Falling - tilt down
             eagle.rotation = Math.min(1.2, eagle.velocity * 0.08);
         }
     } else {
-        // During grace period, keep eagle at starting position
         eagle.velocity = 0;
         eagle.rotation = 0;
     }
@@ -591,22 +535,18 @@ function update() {
         if (eagle.attackTimer <= 0) eagle.isAttacking = false;
     }
     
-    // Bottom collision only - can touch the sky
     if (eagle.y + eagle.h > canvas.height) gameOver();
     if (eagle.y < 0) eagle.y = 0;
     
     distance += config.speed * 0.1 * deltaTime;
     if (frameCount % 60 === 0) time++;
     
-    // Level up every 60 seconds
     const targetLevel = Math.floor(time / 60) + 1;
     if (targetLevel > currentLevel && targetLevel <= 20) {
         currentLevel = targetLevel;
         unlockLevel(currentLevel);
         playLevelUpSound();
     }
-    
-    // Level now shown in scoreElement
     
     phaseTimer += deltaTime;
     
@@ -632,7 +572,6 @@ function update() {
         if (t.life <= 0) thunders.splice(i, 1);
     });
     
-    // Update fireballs
     fireballs.forEach((fb, i) => {
         fb.x += fb.vx * deltaTime;
         fb.life -= deltaTime;
@@ -642,36 +581,30 @@ function update() {
         }
     });
     
-    // NEW: Update floating points
     floatingPoints.forEach((fp, i) => {
         fp.y -= fp.vy * deltaTime;
         fp.life -= deltaTime;
-        fp.alpha = fp.life / 60; // Fade out over 1 second
+        fp.alpha = fp.life / 60;
         
         if (fp.life <= 0) {
             floatingPoints.splice(i, 1);
         }
     });
     
-    // Spawn chimneys during pipes phase
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
         const gapSize = config.gapSize;
         
         let gapStart;
         if (lastChimneyGapStart === null) {
-            // First chimney - place it in a safe middle area
             gapStart = canvas.height / 2 - gapSize / 2;
         } else {
-            // Subsequent chimneys - gradual change like Flappy Bird
             const maxChange = 60;
             const minGap = 80;
             const maxGap = canvas.height - gapSize - 80;
             
-            // Random change within allowed range
             const change = (Math.random() - 0.5) * 2 * maxChange;
             gapStart = lastChimneyGapStart + change;
             
-            // Clamp to safe boundaries
             gapStart = Math.max(minGap, Math.min(maxGap, gapStart));
         }
         
@@ -682,42 +615,31 @@ function update() {
             width: 50
         });
         
-        // CHANGE 2: Spawn more varied fruits with different point values
-        const fruitRoll = Math.random();
-        
-        // Spawn fruit in the gap (60% chance - increased from 50%)
         if (Math.random() < 0.6) {
             const fruitType = Math.random();
             let fruit;
             
             if (fruitType < 0.16) {
-                // Cherry - 10 points
                 fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 18, type: 'cherry', points: 10 };
                 cherries.push(fruit);
             } else if (fruitType < 0.32) {
-                // Banana - 15 points
                 fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 20, type: 'banana', points: 15 };
                 bananas.push(fruit);
             } else if (fruitType < 0.48) {
-                // Apple - 20 points
                 fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 19, type: 'apple', points: 20 };
                 apples.push(fruit);
             } else if (fruitType < 0.64) {
-                // Grapes - 25 points
                 fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 18, type: 'grapes', points: 25 };
                 grapes.push(fruit);
             } else if (fruitType < 0.82) {
-                // Orange - 30 points
                 fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 19, type: 'orange', points: 30 };
                 oranges.push(fruit);
             } else {
-                // Strawberry - 35 points
                 fruit = { x: canvas.width + 25, y: gapStart + gapSize / 2, size: 18, type: 'strawberry', points: 35 };
                 strawberries.push(fruit);
             }
         }
         
-        // Spawn fruit at different heights in the gap (40% chance - increased from 30%)
         if (Math.random() < 0.4) {
             const fruitType2 = Math.random();
             const safeY = gapStart + 30 + Math.random() * (gapSize - 60);
@@ -737,19 +659,28 @@ function update() {
             }
         }
         
+        // NEW: Spawn hearts in FREE SPACE after pipes, challenging but reachable
+        // Hearts spawn 150-250 pixels after pipe, in middle-upper area (reachable with effort)
+        if (Math.random() < 0.3) {
+            const freeSpaceX = canvas.width + 150 + Math.random() * 100; // 150-250px after pipe
+            const challengingY = canvas.height * 0.25 + Math.random() * (canvas.height * 0.25); // Middle 25-50% height
+            hearts.push({
+                x: freeSpaceX,
+                y: challengingY,
+                size: 22
+            });
+        }
+        
         lastChimneyGapStart = gapStart;
     }
     
     chimneyObstacles.forEach((chimney, i) => {
         chimney.x -= config.speed * deltaTime;
         
-        // Collision detection
         if (eagle.x + eagle.w > chimney.x && eagle.x < chimney.x + chimney.width) {
-            // Hit top chimney
             if (eagle.y < chimney.gapStart) {
                 gameOver();
             }
-            // Hit bottom chimney
             if (eagle.y + eagle.h > chimney.gapStart + chimney.gapSize) {
                 gameOver();
             }
@@ -758,11 +689,9 @@ function update() {
         if (chimney.x < -100) chimneyObstacles.splice(i, 1);
     });
     
-    // Update cherries
     cherries.forEach((cherry, i) => {
         cherry.x -= config.speed * deltaTime;
         
-        // Check collision with eagle
         let eagleCenterX = eagle.x + eagle.w/2;
         let eagleCenterY = eagle.y + eagle.h/2;
         let dist = Math.hypot(eagleCenterX - cherry.x, eagleCenterY - cherry.y);
@@ -770,7 +699,6 @@ function update() {
         if (dist < cherry.size + 15) {
             points += 10;
             playCherrySound();
-            // NEW: Create floating point
             floatingPoints.push({ x: cherry.x, y: cherry.y, value: '+10', life: 60, vy: 1.5, alpha: 1 });
             cherries.splice(i, 1);
         }
@@ -778,7 +706,6 @@ function update() {
         if (cherry.x < -50) cherries.splice(i, 1);
     });
     
-    // Update bananas
     bananas.forEach((banana, i) => {
         banana.x -= config.speed * deltaTime;
         
@@ -789,7 +716,6 @@ function update() {
         if (dist < banana.size + 15) {
             points += 15;
             playBananaSound();
-            // NEW: Create floating point
             floatingPoints.push({ x: banana.x, y: banana.y, value: '+15', life: 60, vy: 1.5, alpha: 1 });
             bananas.splice(i, 1);
         }
@@ -797,7 +723,6 @@ function update() {
         if (banana.x < -50) bananas.splice(i, 1);
     });
     
-    // Update apples
     apples.forEach((apple, i) => {
         apple.x -= config.speed * deltaTime;
         
@@ -808,7 +733,6 @@ function update() {
         if (dist < apple.size + 15) {
             points += 20;
             playAppleSound();
-            // NEW: Create floating point
             floatingPoints.push({ x: apple.x, y: apple.y, value: '+20', life: 60, vy: 1.5, alpha: 1 });
             apples.splice(i, 1);
         }
@@ -816,7 +740,6 @@ function update() {
         if (apple.x < -50) apples.splice(i, 1);
     });
     
-    // NEW: Update grapes
     grapes.forEach((grape, i) => {
         grape.x -= config.speed * deltaTime;
         
@@ -826,7 +749,7 @@ function update() {
         
         if (dist < grape.size + 15) {
             points += 25;
-            playCherrySound(); // Reuse sound
+            playCherrySound();
             floatingPoints.push({ x: grape.x, y: grape.y, value: '+25', life: 60, vy: 1.5, alpha: 1 });
             grapes.splice(i, 1);
         }
@@ -834,7 +757,6 @@ function update() {
         if (grape.x < -50) grapes.splice(i, 1);
     });
     
-    // NEW: Update oranges
     oranges.forEach((orange, i) => {
         orange.x -= config.speed * deltaTime;
         
@@ -844,7 +766,7 @@ function update() {
         
         if (dist < orange.size + 15) {
             points += 30;
-            playAppleSound(); // Reuse sound
+            playAppleSound();
             floatingPoints.push({ x: orange.x, y: orange.y, value: '+30', life: 60, vy: 1.5, alpha: 1 });
             oranges.splice(i, 1);
         }
@@ -852,7 +774,6 @@ function update() {
         if (orange.x < -50) oranges.splice(i, 1);
     });
     
-    // NEW: Update strawberries
     strawberries.forEach((strawberry, i) => {
         strawberry.x -= config.speed * deltaTime;
         
@@ -862,7 +783,7 @@ function update() {
         
         if (dist < strawberry.size + 15) {
             points += 35;
-            playBananaSound(); // Reuse sound
+            playBananaSound();
             floatingPoints.push({ x: strawberry.x, y: strawberry.y, value: '+35', life: 60, vy: 1.5, alpha: 1 });
             strawberries.splice(i, 1);
         }
@@ -870,11 +791,27 @@ function update() {
         if (strawberry.x < -50) strawberries.splice(i, 1);
     });
     
-    // Spawn enemies during enemies phase - more balanced density
+    hearts.forEach((heart, i) => {
+        heart.x -= config.speed * deltaTime;
+        
+        let eagleCenterX = eagle.x + eagle.w/2;
+        let eagleCenterY = eagle.y + eagle.h/2;
+        let dist = Math.hypot(eagleCenterX - heart.x, eagleCenterY - heart.y);
+        
+        if (dist < heart.size + 15) {
+            points += 100;
+            playLevelUpSound();
+            floatingPoints.push({ x: heart.x, y: heart.y, value: '+100', life: 60, vy: 1.5, alpha: 1 });
+            if (navigator.vibrate) navigator.vibrate(200);
+            hearts.splice(i, 1);
+        }
+        
+        if (heart.x < -50) hearts.splice(i, 1);
+    });
+    
     if (currentPhase === 'enemies' && frameCount % config.enemySpawnRate === 0) {
         const allEnemies = [...dragons, ...toothFairies];
         
-        // Allow multiple enemies but not too many
         if (allEnemies.length < config.maxEnemies) {
             const enemyType = Math.random();
             const yPos = 80 + Math.random() * (canvas.height - 180);
@@ -903,7 +840,6 @@ function update() {
         }
     }
     
-    // Spawn swords during enemies phase
     if (currentPhase === 'enemies' && frameCount % config.swordSpawnRate === 0) {
         swords.push({
             x: canvas.width,
@@ -918,7 +854,6 @@ function update() {
         sword.x -= config.speed * deltaTime;
         sword.rotation += sword.rotationSpeed * deltaTime;
         
-        // Check collision with fireballs
         let hitByFireball = false;
         fireballs.forEach((fb, fbIndex) => {
             const dist = Math.hypot(fb.x - sword.x, fb.y - sword.y);
@@ -932,7 +867,6 @@ function update() {
         
         if (hitByFireball) return;
         
-        // Collision detection with eagle
         let shieldRadius = 30;
         let eagleCenterX = eagle.x + eagle.w/2;
         let eagleCenterY = eagle.y + eagle.h/2;
@@ -956,7 +890,6 @@ function update() {
         if (d.isFiring) d.fireTimer -= deltaTime; 
         if (d.fireTimer <= 0) d.isFiring = false;
 
-        // Check collision with fireballs
         let hitByFireball = false;
         fireballs.forEach((fb, fbIndex) => {
             let dragonCenterX = d.x + d.w/2;
@@ -999,7 +932,6 @@ function update() {
         fairy.wingFlap += fairy.wingSpeed * deltaTime;
         fairy.shootTimer -= deltaTime;
         
-        // Shoot line of teeth horizontally (5 teeth in a horizontal line)
         if (fairy.shootTimer <= 0 && fairy.x < canvas.width - 100) {
             for (let j = 0; j < 5; j++) {
                 teeth.push({
@@ -1014,7 +946,6 @@ function update() {
             fairy.shootTimer = 70;
         }
         
-        // Check collision with fireballs
         let hitByFireball = false;
         fireballs.forEach((fb, fbIndex) => {
             let fairyCenterX = fairy.x + fairy.w/2;
@@ -1054,7 +985,6 @@ function update() {
         tooth.y += tooth.vy * deltaTime;
         tooth.spin += tooth.spinSpeed * deltaTime;
         
-        // Check collision with fireballs
         let hitByFireball = false;
         fireballs.forEach((fb, fbIndex) => {
             const dist = Math.hypot(fb.x - tooth.x, fb.y - tooth.y);
@@ -1131,18 +1061,15 @@ function draw() {
     });
     ctx.globalAlpha = 1.0;
     
-    // Draw chimneys
     chimneyObstacles.forEach(chimney => {
         const topHeight = chimney.gapStart;
         const bottomY = chimney.gapStart + chimney.gapSize;
         const bottomHeight = canvas.height - bottomY;
         
-        // Top chimney
         if (topHeight > 0) {
             ctx.fillStyle = "#ff00ff";
             ctx.fillRect(chimney.x, 0, chimney.width, topHeight);
             
-            // Brick pattern
             ctx.strokeStyle = "#cc00cc";
             ctx.lineWidth = 2;
             for(let y = 0; y < topHeight; y += 15) {
@@ -1151,17 +1078,14 @@ function draw() {
                 }
             }
             
-            // Chimney cap
             ctx.fillStyle = "#cc00cc";
             ctx.fillRect(chimney.x - 5, topHeight - 10, chimney.width + 10, 10);
         }
         
-        // Bottom chimney
         if (bottomHeight > 0) {
             ctx.fillStyle = "#ff00ff";
             ctx.fillRect(chimney.x, bottomY, chimney.width, bottomHeight);
             
-            // Brick pattern
             ctx.strokeStyle = "#cc00cc";
             ctx.lineWidth = 2;
             for(let y = bottomY; y < canvas.height; y += 15) {
@@ -1170,17 +1094,15 @@ function draw() {
                 }
             }
             
-            // Chimney cap
             ctx.fillStyle = "#cc00cc";
             ctx.fillRect(chimney.x - 5, bottomY, chimney.width + 10, 10);
         }
     });
     
-    // CHANGE 2: Draw fruits with golden framework
     const drawFruitWithGlow = (emoji, x, y, size) => {
         ctx.save();
         ctx.shadowBlur = 15;
-        ctx.shadowColor = "#FFD700"; // Golden glow
+        ctx.shadowColor = "#FFD700";
         ctx.font = `${size}px serif`;
         ctx.fillText(emoji, x - size/2, y + size/2);
         ctx.restore();
@@ -1192,17 +1114,16 @@ function draw() {
     grapes.forEach(grape => drawFruitWithGlow("🍇", grape.x, grape.y, grape.size));
     oranges.forEach(orange => drawFruitWithGlow("🍊", orange.x, orange.y, orange.size));
     strawberries.forEach(strawberry => drawFruitWithGlow("🍓", strawberry.x, strawberry.y, strawberry.size));
+    hearts.forEach(heart => drawFruitWithGlow("❤️", heart.x, heart.y, heart.size));
     
-    // NEW: Draw floating points (Mario-style)
     floatingPoints.forEach(fp => {
         ctx.save();
         ctx.font = 'bold 24px Arial';
-        ctx.fillStyle = `rgba(255, 215, 0, ${fp.alpha})`; // Golden color with fade
+        ctx.fillStyle = `rgba(255, 215, 0, ${fp.alpha})`;
         ctx.strokeStyle = `rgba(0, 0, 0, ${fp.alpha})`;
         ctx.lineWidth = 3;
         ctx.textAlign = 'center';
         
-        // Shadow for extra pop
         ctx.shadowBlur = 10;
         ctx.shadowColor = `rgba(255, 215, 0, ${fp.alpha * 0.5})`;
         
@@ -1223,21 +1144,17 @@ function draw() {
         }
     });
     
-    // Draw Star Wars style lightsaber swords
     swords.forEach(sword => {
         ctx.save();
         ctx.translate(sword.x, sword.y);
         ctx.rotate(sword.rotation);
         
-        // Intense red glow for lightsaber effect
         ctx.shadowBlur = 25;
         ctx.shadowColor = "#FF0000";
         
-        // Draw lightsaber blade as vertical red beam
         const bladeLength = 40;
         const bladeWidth = 4;
         
-        // Outer glow
         ctx.strokeStyle = "#FF6666";
         ctx.lineWidth = 8;
         ctx.globalAlpha = 0.4;
@@ -1246,7 +1163,6 @@ function draw() {
         ctx.lineTo(0, bladeLength/2);
         ctx.stroke();
         
-        // Core beam
         ctx.strokeStyle = "#FF0000";
         ctx.lineWidth = bladeWidth;
         ctx.globalAlpha = 1.0;
@@ -1255,7 +1171,6 @@ function draw() {
         ctx.lineTo(0, bladeLength/2);
         ctx.stroke();
         
-        // Inner bright core
         ctx.strokeStyle = "#FFAAAA";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -1263,7 +1178,6 @@ function draw() {
         ctx.lineTo(0, bladeLength/2);
         ctx.stroke();
         
-        // Hilt
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#333333";
         ctx.globalAlpha = 1.0;
@@ -1272,29 +1186,24 @@ function draw() {
         ctx.restore();
     });
     
-    // Draw fireballs
     fireballs.forEach(fb => {
         ctx.save();
         
-        // Fire glow effect
         ctx.shadowBlur = 20;
         ctx.shadowColor = "#FF4500";
         
-        // Outer flame
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = "#FF4500";
         ctx.beginPath();
         ctx.arc(fb.x, fb.y, fb.size, 0, Math.PI * 2);
         ctx.fill();
         
-        // Middle flame
         ctx.globalAlpha = 0.8;
         ctx.fillStyle = "#FF6347";
         ctx.beginPath();
         ctx.arc(fb.x, fb.y, fb.size * 0.7, 0, Math.PI * 2);
         ctx.fill();
         
-        // Inner core
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = "#FFA500";
         ctx.beginPath();
@@ -1304,87 +1213,87 @@ function draw() {
         ctx.restore();
     });
     
-    // Draw FANCY HORIZONTAL BIRD with gold framework (small/no wings)
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
-    ctx.rotate(eagle.rotation); // Apply rotation based on velocity
-    ctx.scale(0.75, 0.75); // Make bird smaller
+    ctx.rotate(eagle.rotation);
+    ctx.scale(1.5, 1.125); // 50% bigger (was 1.0, 0.75)
     
-    // Golden framework glow
     ctx.shadowBlur = 35;
     ctx.shadowColor = "#FFD700";
     
     if(eagle.isAttacking) { 
         ctx.shadowBlur = 45; 
-        ctx.shadowColor = "#FF4500"; // Orange-red glow when throwing fire
+        ctx.shadowColor = "#FF4500";
     }
         
-    // Draw fancy red bird - horizontal orientation, optimized for pipeline game
-    ctx.filter = 'brightness(1.1) contrast(1.2)'; // Vibrant red bird
+    ctx.filter = 'brightness(1.1) contrast(1.2)';
 
-    // Body (streamlined horizontal oval - compact for pipelines) - 30% increase
+    // Round goldfish body
     ctx.beginPath();
-    ctx.ellipse(0, 0, 18.2, 10.4, 0, 0, Math.PI * 2); // 14*1.3=18.2, 8*1.3=10.4
-    ctx.fillStyle = '#DC143C'; // Crimson red
+    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFA500';
     ctx.fill();
-    ctx.strokeStyle = '#8B0000'; // Dark red outline
-    ctx.lineWidth = 1.95; // 1.5*1.3
+    ctx.strokeStyle = '#FF8C00';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Head (proportional circle at front) - 30% increase
+    // Head overlapping body
     ctx.beginPath();
-    ctx.arc(15.6, 0, 10.4, 0, Math.PI * 2); // 12*1.3=15.6, 8*1.3=10.4
-    ctx.fillStyle = '#DC143C'; // Same red
+    ctx.arc(12, 0, 12, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFB732';
     ctx.fill();
-    ctx.strokeStyle = '#8B0000';
+    ctx.strokeStyle = '#FF8C00';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Beak (pointing right - golden/orange) - 30% increase
+    // BIG BLACK EYE
     ctx.beginPath();
-    ctx.moveTo(23.4, 0); // 18*1.3
-    ctx.lineTo(31.2, -3.25); // 24*1.3, -2.5*1.3
-    ctx.lineTo(31.2, 3.25);
-    ctx.closePath();
-    ctx.fillStyle = '#FF8C00'; // Orange beak
+    ctx.arc(16, -2, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#000000';
     ctx.fill();
-    ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 1.3; // 1*1.3
-    ctx.stroke();
 
-    // Eye - big and white with black pupil - 30% increase
+    // Eye shine
     ctx.beginPath();
-    ctx.arc(18.2, -1.95, 5.85, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 4.5*1.3
+    ctx.arc(17.5, -3.5, 2, 0, Math.PI * 2);
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 0.65; // 0.5*1.3
+
+    // Small mouth
+    ctx.beginPath();
+    ctx.arc(22, 2, 2, 0, Math.PI, false);
+    ctx.strokeStyle = '#CC6600';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Pupil - 30% increase
+    // Tail fin (fancy goldfish tail)
     ctx.beginPath();
-    ctx.arc(18.2, -1.95, 2.6, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 2*1.3
-    ctx.fillStyle = '#000';
-    ctx.fill();
-
-    // Tail feathers (sleek, flowing back) - 30% increase
-    ctx.beginPath();
-    ctx.moveTo(-18.2, 0); // -14*1.3
-    ctx.lineTo(-26, -6.5); // -20*1.3, -5*1.3
-    ctx.lineTo(-23.4, 0); // -18*1.3
-    ctx.lineTo(-26, 6.5); // -20*1.3, 5*1.3
+    ctx.moveTo(-16, 0);
+    ctx.lineTo(-28, -10);
+    ctx.lineTo(-24, 0);
+    ctx.lineTo(-28, 10);
     ctx.closePath();
-    ctx.fillStyle = '#B22222'; // Darker red for tail
+    ctx.fillStyle = '#FF6347';
     ctx.fill();
-    ctx.strokeStyle = '#8B0000';
+    ctx.strokeStyle = '#FF8C00';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Small wing accent (single top wing for detail) - 30% increase
+    // Top fin - STUCK TO BODY (positioned on body, not separate)
     ctx.beginPath();
-    ctx.ellipse(0, -7.8, 6.5, 3.9, -0.2, 0, Math.PI * 2); // 0, -6*1.3, 5*1.3, 3*1.3
-    ctx.fillStyle = '#B22222'; // Darker red
+    ctx.ellipse(0, -10, 6, 8, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#FF6347';
     ctx.fill();
-    ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 1.04; // 0.8*1.3
+    ctx.strokeStyle = '#FF8C00';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    
+    // Bottom fin - STUCK TO BODY (positioned on body, not separate)
+    ctx.beginPath();
+    ctx.ellipse(-4, 10, 5, 6, 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#FF6347';
+    ctx.fill();
+    ctx.strokeStyle = '#FF8C00';
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
     ctx.restore();
@@ -1402,7 +1311,6 @@ function draw() {
         const x = canvas.width / 2;
         const y = canvas.height / 2 + 80;
         
-        // Pulsing effect
         const scale = 1 + Math.sin(frameCount * 0.1) * 0.1;
         ctx.translate(x, y);
         ctx.scale(scale, scale);
@@ -1461,8 +1369,8 @@ function animate() {
     if (!gameActive) return; 
     
     const currentTime = performance.now();
-    const rawDelta = (currentTime - lastFrameTime) / 16.67; // Normalize to 60fps
-    deltaTime = Math.min(rawDelta, 2); // Cap at 2x to prevent huge jumps
+    const rawDelta = (currentTime - lastFrameTime) / 16.67;
+    deltaTime = Math.min(rawDelta, 2);
     lastFrameTime = currentTime;
     
     update(); 
@@ -1474,9 +1382,47 @@ function gameOver() {
     gameActive = false;
     gameStarted = false;
     stopBackgroundMusic();
-    playGameOverSound();
     scoreElement.style.display = 'none';
-    document.getElementById('game-over').style.display = 'block';
+    
+    const gameOverDiv = document.getElementById('game-over');
+    gameOverDiv.style.display = 'block';
     document.getElementById('final-score-display').innerText = `Distance: ${Math.floor(distance)}m | Level: ${currentLevel} | Points: ${points}`;
+    
+    const oldRetry = document.getElementById('retry-btn');
+    const oldMenu = document.getElementById('menu-btn');
+    if (oldRetry) oldRetry.remove();
+    if (oldMenu) oldMenu.remove();
+    
+    const retryBtn = document.createElement('button');
+    retryBtn.id = 'retry-btn';
+    retryBtn.textContent = 'RESTART';
+    retryBtn.style.padding = '15px 40px';
+    retryBtn.style.fontSize = '20px';
+    retryBtn.style.backgroundColor = '#00ff00';
+    retryBtn.style.border = 'none';
+    retryBtn.style.borderRadius = '10px';
+    retryBtn.style.cursor = 'pointer';
+    retryBtn.style.fontWeight = 'bold';
+    retryBtn.style.marginRight = '20px';
+    retryBtn.onclick = retryGame;
+    
+    const menuBtn = document.createElement('button');
+    menuBtn.id = 'menu-btn';
+    menuBtn.textContent = 'MENU';
+    menuBtn.style.padding = '15px 40px';
+    menuBtn.style.fontSize = '20px';
+    menuBtn.style.backgroundColor = '#ff6600';
+    menuBtn.style.border = 'none';
+    menuBtn.style.borderRadius = '10px';
+    menuBtn.style.cursor = 'pointer';
+    menuBtn.style.fontWeight = 'bold';
+    menuBtn.onclick = backToMenu;
+    
+    gameOverDiv.appendChild(retryBtn);
+    gameOverDiv.appendChild(menuBtn);
+    
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    
+    // Play sound at the end for better sync
+    playGameOverSound();
 }

@@ -659,14 +659,21 @@ function update() {
             }
         }
         
-        // NEW: Spawn hearts HIGHER than other fruits - challenging but doable
-        // Hearts spawn in free space, in upper portion of screen (always higher than regular fruits)
+        // Spawn hearts centered between two pipes, higher than fruits but reachable with 2 jumps
         if (Math.random() < 0.25) {
-            const freeSpaceX = canvas.width + 150 + Math.random() * 100; // 150-250px after pipe
-            const highY = canvas.height * 0.20 + Math.random() * (canvas.height * 0.15); // Upper 20-35% of screen
+            // Position heart in the middle of the space between this pipe and the next one
+            // Assuming pipes spawn every ~55-70 frames at speed 3.0, gap is roughly 250-350px
+            const betweenPipesX = canvas.width + 25 + 175; // Center between current pipe (width 50) and next pipe
+            
+            // Height should be above gap center but reachable
+            // Gap center is at gapStart + gapSize/2
+            // Make it 60-100px higher than gap center (reachable with 2 flaps)
+            const gapCenterY = gapStart + gapSize / 2;
+            const heartY = gapCenterY - (60 + Math.random() * 40); // 60-100px above gap center
+            
             hearts.push({
-                x: freeSpaceX,
-                y: highY,
+                x: betweenPipesX,
+                y: heartY,
                 size: 22
             });
         }

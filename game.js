@@ -659,14 +659,14 @@ function update() {
             }
         }
         
-        // NEW: Spawn hearts in FREE SPACE after pipes, challenging but reachable
-        // Hearts spawn 150-250 pixels after pipe, in middle-upper area (reachable with effort)
-        if (Math.random() < 0.3) {
+        // NEW: Spawn hearts HIGHER than other fruits - challenging but doable
+        // Hearts spawn in free space, in upper portion of screen (always higher than regular fruits)
+        if (Math.random() < 0.25) {
             const freeSpaceX = canvas.width + 150 + Math.random() * 100; // 150-250px after pipe
-            const challengingY = canvas.height * 0.25 + Math.random() * (canvas.height * 0.25); // Middle 25-50% height
+            const highY = canvas.height * 0.20 + Math.random() * (canvas.height * 0.15); // Upper 20-35% of screen
             hearts.push({
                 x: freeSpaceX,
-                y: challengingY,
+                y: highY,
                 size: 22
             });
         }
@@ -1216,7 +1216,7 @@ function draw() {
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
     ctx.rotate(eagle.rotation);
-    ctx.scale(1.5, 1.125); // 50% bigger (was 1.0, 0.75)
+    ctx.scale(0.975, 0.975); // 30% bigger than original 0.75
     
     ctx.shadowBlur = 35;
     ctx.shadowColor = "#FFD700";
@@ -1228,72 +1228,69 @@ function draw() {
         
     ctx.filter = 'brightness(1.1) contrast(1.2)';
 
-    // Round goldfish body
+    // Body (streamlined horizontal oval - compact for pipelines) - 30% increase
     ctx.beginPath();
-    ctx.arc(0, 0, 16, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFA500';
+    ctx.ellipse(0, 0, 18.2, 10.4, 0, 0, Math.PI * 2); // 14*1.3=18.2, 8*1.3=10.4
+    ctx.fillStyle = '#DC143C'; // Crimson red
     ctx.fill();
-    ctx.strokeStyle = '#FF8C00';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#8B0000'; // Dark red outline
+    ctx.lineWidth = 1.95; // 1.5*1.3
     ctx.stroke();
 
-    // Head overlapping body
+    // Head (proportional circle at front) - 30% increase
     ctx.beginPath();
-    ctx.arc(12, 0, 12, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFB732';
+    ctx.arc(15.6, 0, 10.4, 0, Math.PI * 2); // 12*1.3=15.6, 8*1.3=10.4
+    ctx.fillStyle = '#DC143C'; // Same red
     ctx.fill();
-    ctx.strokeStyle = '#FF8C00';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#8B0000';
     ctx.stroke();
 
-    // BIG BLACK EYE
+    // Beak (pointing right - golden/orange) - 30% increase
     ctx.beginPath();
-    ctx.arc(16, -2, 7, 0, Math.PI * 2);
-    ctx.fillStyle = '#000000';
+    ctx.moveTo(23.4, 0); // 18*1.3
+    ctx.lineTo(31.2, -3.25); // 24*1.3, -2.5*1.3
+    ctx.lineTo(31.2, 3.25);
+    ctx.closePath();
+    ctx.fillStyle = '#FF8C00'; // Orange beak
     ctx.fill();
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 1.3; // 1*1.3
+    ctx.stroke();
 
-    // Eye shine
+    // Eye - big and white with black pupil - 30% increase
     ctx.beginPath();
-    ctx.arc(17.5, -3.5, 2, 0, Math.PI * 2);
+    ctx.arc(18.2, -1.95, 5.85, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 4.5*1.3
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
-
-    // Small mouth
-    ctx.beginPath();
-    ctx.arc(22, 2, 2, 0, Math.PI, false);
-    ctx.strokeStyle = '#CC6600';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 0.65; // 0.5*1.3
     ctx.stroke();
 
-    // Tail fin (fancy goldfish tail)
+    // Pupil - 30% increase
     ctx.beginPath();
-    ctx.moveTo(-16, 0);
-    ctx.lineTo(-28, -10);
-    ctx.lineTo(-24, 0);
-    ctx.lineTo(-28, 10);
+    ctx.arc(18.2, -1.95, 2.6, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 2*1.3
+    ctx.fillStyle = '#000';
+    ctx.fill();
+
+    // Tail feathers (sleek, flowing back) - 30% increase
+    ctx.beginPath();
+    ctx.moveTo(-18.2, 0); // -14*1.3
+    ctx.lineTo(-26, -6.5); // -20*1.3, -5*1.3
+    ctx.lineTo(-23.4, 0); // -18*1.3
+    ctx.lineTo(-26, 6.5); // -20*1.3, 5*1.3
     ctx.closePath();
-    ctx.fillStyle = '#FF6347';
+    ctx.fillStyle = '#B22222'; // Darker red for tail
     ctx.fill();
-    ctx.strokeStyle = '#FF8C00';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#8B0000';
     ctx.stroke();
 
-    // Top fin - STUCK TO BODY (positioned on body, not separate)
+    // Small wing accent (single top wing for detail) - 30% increase
     ctx.beginPath();
-    ctx.ellipse(0, -10, 6, 8, -0.2, 0, Math.PI * 2);
-    ctx.fillStyle = '#FF6347';
+    ctx.ellipse(0, -7.8, 6.5, 3.9, -0.2, 0, Math.PI * 2); // 0, -6*1.3, 5*1.3, 3*1.3
+    ctx.fillStyle = '#B22222'; // Darker red
     ctx.fill();
-    ctx.strokeStyle = '#FF8C00';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-    
-    // Bottom fin - STUCK TO BODY (positioned on body, not separate)
-    ctx.beginPath();
-    ctx.ellipse(-4, 10, 5, 6, 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = '#FF6347';
-    ctx.fill();
-    ctx.strokeStyle = '#FF8C00';
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 1.04; // 0.8*1.3
     ctx.stroke();
 
     ctx.restore();

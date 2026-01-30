@@ -238,13 +238,13 @@ let lastChimneyGapStart = null;
 function initWorld() {
     snow = []; buildings = []; planets = []; trees = [];
     
-    for(let i = 0; i < 150; i++) {
+    for(let i = 0; i < 100; i++) { // Reduced from 150 to 100
         snow.push({
             x: Math.random() * canvas.width, 
             y: Math.random() * canvas.height, 
             s: Math.random() * 2.5 + 0.8, 
             v: Math.random() * 1.2 + 0.4,
-            isFancy: Math.random() > 0.5
+            isFancy: Math.random() > 0.7 // Reduced fancy snowflakes from 50% to 30%
         });
     }
     
@@ -269,7 +269,7 @@ function initWorld() {
         });
     }
     
-    ["🪐", "🌑", "☄️", "🔴", "🌕", "⭐", "✨"].forEach((icon, i) => {
+    ["🪐", "🌑", "☄️", "🔴", "🌕"].forEach((icon, i) => { // Reduced from 7 to 5 planets
         planets.push({ 
             icon, 
             centerX: Math.random() * canvas.width, 
@@ -281,7 +281,7 @@ function initWorld() {
         });
     });
     
-    ["🛸", "🚀", "🛰️"].forEach((icon, i) => {
+    ["🛸", "🚀"].forEach((icon, i) => { // Reduced from 3 to 2 spacecraft
         planets.push({ 
             icon, 
             centerX: Math.random() * canvas.width, 
@@ -566,30 +566,31 @@ function update() {
         thunders.push({ x: Math.random() * canvas.width, life: 15, alpha: 1 });
     }
     
-    thunders.forEach((t, i) => {
-        t.life -= deltaTime;
-        t.alpha = t.life / 15;
-        if (t.life <= 0) thunders.splice(i, 1);
-    });
+    // Use reverse iteration for safe array removal
+    for (let i = thunders.length - 1; i >= 0; i--) {
+        thunders[i].life -= deltaTime;
+        thunders[i].alpha = thunders[i].life / 15;
+        if (thunders[i].life <= 0) thunders.splice(i, 1);
+    }
     
-    fireballs.forEach((fb, i) => {
-        fb.x += fb.vx * deltaTime;
-        fb.life -= deltaTime;
+    for (let i = fireballs.length - 1; i >= 0; i--) {
+        fireballs[i].x += fireballs[i].vx * deltaTime;
+        fireballs[i].life -= deltaTime;
         
-        if (fb.life <= 0 || fb.x > canvas.width) {
+        if (fireballs[i].life <= 0 || fireballs[i].x > canvas.width) {
             fireballs.splice(i, 1);
         }
-    });
+    }
     
-    floatingPoints.forEach((fp, i) => {
-        fp.y -= fp.vy * deltaTime;
-        fp.life -= deltaTime;
-        fp.alpha = fp.life / 60;
+    for (let i = floatingPoints.length - 1; i >= 0; i--) {
+        floatingPoints[i].y -= floatingPoints[i].vy * deltaTime;
+        floatingPoints[i].life -= deltaTime;
+        floatingPoints[i].alpha = floatingPoints[i].life / 60;
         
-        if (fp.life <= 0) {
+        if (floatingPoints[i].life <= 0) {
             floatingPoints.splice(i, 1);
         }
-    });
+    }
     
     if (currentPhase === 'pipes' && frameCount % config.obstacleSpawnRate === 0) {
         const gapSize = config.gapSize;
@@ -661,15 +662,9 @@ function update() {
         
         // Spawn hearts centered between two pipes, higher than fruits but reachable with 2 jumps
         if (Math.random() < 0.25) {
-            // Position heart in the middle of the space between this pipe and the next one
-            // Assuming pipes spawn every ~55-70 frames at speed 3.0, gap is roughly 250-350px
-            const betweenPipesX = canvas.width + 25 + 175; // Center between current pipe (width 50) and next pipe
-            
-            // Height should be above gap center but reachable
-            // Gap center is at gapStart + gapSize/2
-            // Make it 60-100px higher than gap center (reachable with 2 flaps)
+            const betweenPipesX = canvas.width + 25 + 175;
             const gapCenterY = gapStart + gapSize / 2;
-            const heartY = gapCenterY - (60 + Math.random() * 40); // 60-100px above gap center
+            const heartY = gapCenterY - (40 + Math.random() * 40);
             
             hearts.push({
                 x: betweenPipesX,
@@ -681,129 +676,59 @@ function update() {
         lastChimneyGapStart = gapStart;
     }
     
-    chimneyObstacles.forEach((chimney, i) => {
+    for (let i = chimneyObstacles.length - 1; i >= 0; i--) {
+        const chimney = chimneyObstacles[i];
         chimney.x -= config.speed * deltaTime;
         
         if (eagle.x + eagle.w > chimney.x && eagle.x < chimney.x + chimney.width) {
             if (eagle.y < chimney.gapStart) {
                 gameOver();
+                return;
             }
             if (eagle.y + eagle.h > chimney.gapStart + chimney.gapSize) {
                 gameOver();
+                return;
             }
         }
         
         if (chimney.x < -100) chimneyObstacles.splice(i, 1);
-    });
+    }
     
-    cherries.forEach((cherry, i) => {
-        cherry.x -= config.speed * deltaTime;
-        
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - cherry.x, eagleCenterY - cherry.y);
-        
-        if (dist < cherry.size + 15) {
-            points += 10;
-            playCherrySound();
-            floatingPoints.push({ x: cherry.x, y: cherry.y, value: '+10', life: 60, vy: 1.5, alpha: 1 });
-            cherries.splice(i, 1);
+    // Process fruits with reverse iteration
+    const processFruits = (fruitArray, pointValue, soundFunc) => {
+        for (let i = fruitArray.length - 1; i >= 0; i--) {
+            const fruit = fruitArray[i];
+            fruit.x -= config.speed * deltaTime;
+            
+            const eagleCenterX = eagle.x + eagle.w/2;
+            const eagleCenterY = eagle.y + eagle.h/2;
+            const dist = Math.hypot(eagleCenterX - fruit.x, eagleCenterY - fruit.y);
+            
+            if (dist < fruit.size + 15) {
+                points += pointValue;
+                soundFunc();
+                floatingPoints.push({ x: fruit.x, y: fruit.y, value: `+${pointValue}`, life: 60, vy: 1.5, alpha: 1 });
+                fruitArray.splice(i, 1);
+            } else if (fruit.x < -50) {
+                fruitArray.splice(i, 1);
+            }
         }
-        
-        if (cherry.x < -50) cherries.splice(i, 1);
-    });
+    };
     
-    bananas.forEach((banana, i) => {
-        banana.x -= config.speed * deltaTime;
-        
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - banana.x, eagleCenterY - banana.y);
-        
-        if (dist < banana.size + 15) {
-            points += 15;
-            playBananaSound();
-            floatingPoints.push({ x: banana.x, y: banana.y, value: '+15', life: 60, vy: 1.5, alpha: 1 });
-            bananas.splice(i, 1);
-        }
-        
-        if (banana.x < -50) bananas.splice(i, 1);
-    });
+    processFruits(cherries, 10, playCherrySound);
+    processFruits(bananas, 15, playBananaSound);
+    processFruits(apples, 20, playAppleSound);
+    processFruits(grapes, 25, playCherrySound);
+    processFruits(oranges, 30, playAppleSound);
+    processFruits(strawberries, 35, playBananaSound);
     
-    apples.forEach((apple, i) => {
-        apple.x -= config.speed * deltaTime;
-        
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - apple.x, eagleCenterY - apple.y);
-        
-        if (dist < apple.size + 15) {
-            points += 20;
-            playAppleSound();
-            floatingPoints.push({ x: apple.x, y: apple.y, value: '+20', life: 60, vy: 1.5, alpha: 1 });
-            apples.splice(i, 1);
-        }
-        
-        if (apple.x < -50) apples.splice(i, 1);
-    });
-    
-    grapes.forEach((grape, i) => {
-        grape.x -= config.speed * deltaTime;
-        
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - grape.x, eagleCenterY - grape.y);
-        
-        if (dist < grape.size + 15) {
-            points += 25;
-            playCherrySound();
-            floatingPoints.push({ x: grape.x, y: grape.y, value: '+25', life: 60, vy: 1.5, alpha: 1 });
-            grapes.splice(i, 1);
-        }
-        
-        if (grape.x < -50) grapes.splice(i, 1);
-    });
-    
-    oranges.forEach((orange, i) => {
-        orange.x -= config.speed * deltaTime;
-        
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - orange.x, eagleCenterY - orange.y);
-        
-        if (dist < orange.size + 15) {
-            points += 30;
-            playAppleSound();
-            floatingPoints.push({ x: orange.x, y: orange.y, value: '+30', life: 60, vy: 1.5, alpha: 1 });
-            oranges.splice(i, 1);
-        }
-        
-        if (orange.x < -50) oranges.splice(i, 1);
-    });
-    
-    strawberries.forEach((strawberry, i) => {
-        strawberry.x -= config.speed * deltaTime;
-        
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - strawberry.x, eagleCenterY - strawberry.y);
-        
-        if (dist < strawberry.size + 15) {
-            points += 35;
-            playBananaSound();
-            floatingPoints.push({ x: strawberry.x, y: strawberry.y, value: '+35', life: 60, vy: 1.5, alpha: 1 });
-            strawberries.splice(i, 1);
-        }
-        
-        if (strawberry.x < -50) strawberries.splice(i, 1);
-    });
-    
-    hearts.forEach((heart, i) => {
+    for (let i = hearts.length - 1; i >= 0; i--) {
+        const heart = hearts[i];
         heart.x -= config.speed * deltaTime;
         
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - heart.x, eagleCenterY - heart.y);
+        const eagleCenterX = eagle.x + eagle.w/2;
+        const eagleCenterY = eagle.y + eagle.h/2;
+        const dist = Math.hypot(eagleCenterX - heart.x, eagleCenterY - heart.y);
         
         if (dist < heart.size + 15) {
             points += 100;
@@ -811,10 +736,10 @@ function update() {
             floatingPoints.push({ x: heart.x, y: heart.y, value: '+100', life: 60, vy: 1.5, alpha: 1 });
             if (navigator.vibrate) navigator.vibrate(200);
             hearts.splice(i, 1);
+        } else if (heart.x < -50) {
+            hearts.splice(i, 1);
         }
-        
-        if (heart.x < -50) hearts.splice(i, 1);
-    });
+    }
     
     if (currentPhase === 'enemies' && frameCount % config.enemySpawnRate === 0) {
         const allEnemies = [...dragons, ...toothFairies];
@@ -857,36 +782,40 @@ function update() {
         });
     }
     
-    swords.forEach((sword, i) => {
+    for (let i = swords.length - 1; i >= 0; i--) {
+        const sword = swords[i];
         sword.x -= config.speed * deltaTime;
         sword.rotation += sword.rotationSpeed * deltaTime;
         
         let hitByFireball = false;
-        fireballs.forEach((fb, fbIndex) => {
+        for (let fbIndex = fireballs.length - 1; fbIndex >= 0; fbIndex--) {
+            const fb = fireballs[fbIndex];
             const dist = Math.hypot(fb.x - sword.x, fb.y - sword.y);
             if (dist < fb.size + sword.size/2) {
                 swords.splice(i, 1);
                 fireballs.splice(fbIndex, 1);
                 if (navigator.vibrate) navigator.vibrate(100);
                 hitByFireball = true;
+                break;
             }
-        });
+        }
         
-        if (hitByFireball) return;
+        if (hitByFireball) continue;
         
-        let shieldRadius = 30;
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dist = Math.hypot(eagleCenterX - sword.x, eagleCenterY - sword.y);
+        const eagleCenterX = eagle.x + eagle.w/2;
+        const eagleCenterY = eagle.y + eagle.h/2;
+        const dist = Math.hypot(eagleCenterX - sword.x, eagleCenterY - sword.y);
         
         if (!eagle.isAttacking && dist < sword.size + 12) {
             gameOver();
+            return;
         }
         
         if (sword.x < -50) swords.splice(i, 1);
-    });
+    }
     
-    dragons.forEach((d, i) => {
+    for (let i = dragons.length - 1; i >= 0; i--) {
+        const d = dragons[i];
         d.x -= config.speed * deltaTime;
         d.wingFlap += 0.15 * deltaTime;
         
@@ -898,27 +827,29 @@ function update() {
         if (d.fireTimer <= 0) d.isFiring = false;
 
         let hitByFireball = false;
-        fireballs.forEach((fb, fbIndex) => {
-            let dragonCenterX = d.x + d.w/2;
-            let dragonCenterY = d.y + d.h/2;
+        for (let fbIndex = fireballs.length - 1; fbIndex >= 0; fbIndex--) {
+            const fb = fireballs[fbIndex];
+            const dragonCenterX = d.x + d.w/2;
+            const dragonCenterY = d.y + d.h/2;
             const dist = Math.hypot(fb.x - dragonCenterX, fb.y - dragonCenterY);
             if (dist < fb.size + d.w/2) {
                 dragons.splice(i, 1);
                 fireballs.splice(fbIndex, 1);
                 if (navigator.vibrate) navigator.vibrate(100);
                 hitByFireball = true;
+                break;
             }
-        });
+        }
         
-        if (hitByFireball) return;
+        if (hitByFireball) continue;
 
-        let shieldRadius = 30;
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let dragonCenterX = d.x + d.w/2;
-        let dragonCenterY = d.y + d.h/2;
+        const eagleCenterX = eagle.x + eagle.w/2;
+        const eagleCenterY = eagle.y + eagle.h/2;
+        const dragonCenterX = d.x + d.w/2;
+        const dragonCenterY = d.y + d.h/2;
         
-        let dist = Math.hypot(eagleCenterX - dragonCenterX, eagleCenterY - dragonCenterY);
+        const dist = Math.hypot(eagleCenterX - dragonCenterX, eagleCenterY - dragonCenterY);
+        const shieldRadius = 30;
 
         if (eagle.shieldActive && dist < shieldRadius + d.w/2) {
             dragons.splice(i, 1); 
@@ -926,15 +857,18 @@ function update() {
         } else if (!eagle.shieldActive && eagle.x < d.x + d.w && eagle.x + eagle.w > d.x && 
                    eagle.y < d.y + d.h && eagle.y + eagle.h > d.y) {
             gameOver();
+            return;
         } else if (d.isFiring && eagle.x + eagle.w > d.x - 90 && eagle.x < d.x && 
                    eagle.y < d.y + d.h && eagle.y + eagle.h > d.y) {
             gameOver();
+            return;
         }
         
         if (d.x + d.w < 0) dragons.splice(i, 1);
-    });
+    }
     
-    toothFairies.forEach((fairy, i) => {
+    for (let i = toothFairies.length - 1; i >= 0; i--) {
+        const fairy = toothFairies[i];
         fairy.x -= config.speed * deltaTime;
         fairy.wingFlap += fairy.wingSpeed * deltaTime;
         fairy.shootTimer -= deltaTime;
@@ -954,27 +888,29 @@ function update() {
         }
         
         let hitByFireball = false;
-        fireballs.forEach((fb, fbIndex) => {
-            let fairyCenterX = fairy.x + fairy.w/2;
-            let fairyCenterY = fairy.y + fairy.h/2;
+        for (let fbIndex = fireballs.length - 1; fbIndex >= 0; fbIndex--) {
+            const fb = fireballs[fbIndex];
+            const fairyCenterX = fairy.x + fairy.w/2;
+            const fairyCenterY = fairy.y + fairy.h/2;
             const dist = Math.hypot(fb.x - fairyCenterX, fb.y - fairyCenterY);
             if (dist < fb.size + fairy.w/2) {
                 toothFairies.splice(i, 1);
                 fireballs.splice(fbIndex, 1);
                 if (navigator.vibrate) navigator.vibrate(100);
                 hitByFireball = true;
+                break;
             }
-        });
+        }
         
-        if (hitByFireball) return;
+        if (hitByFireball) continue;
         
-        let shieldRadius = 30;
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
-        let fairyCenterX = fairy.x + fairy.w/2;
-        let fairyCenterY = fairy.y + fairy.h/2;
+        const eagleCenterX = eagle.x + eagle.w/2;
+        const eagleCenterY = eagle.y + eagle.h/2;
+        const fairyCenterX = fairy.x + fairy.w/2;
+        const fairyCenterY = fairy.y + fairy.h/2;
         
-        let dist = Math.hypot(eagleCenterX - fairyCenterX, eagleCenterY - fairyCenterY);
+        const dist = Math.hypot(eagleCenterX - fairyCenterX, eagleCenterY - fairyCenterY);
+        const shieldRadius = 30;
         
         if (eagle.shieldActive && dist < shieldRadius + fairy.w/2) {
             toothFairies.splice(i, 1);
@@ -982,41 +918,46 @@ function update() {
         } else if (!eagle.shieldActive && eagle.x < fairy.x + fairy.w && eagle.x + fairy.w > fairy.x && 
                    eagle.y < fairy.y + fairy.h && eagle.y + fairy.h > fairy.y) {
             gameOver();
+            return;
         }
         
         if (fairy.x < -100) toothFairies.splice(i, 1);
-    });
+    }
     
-    teeth.forEach((tooth, i) => {
+    for (let i = teeth.length - 1; i >= 0; i--) {
+        const tooth = teeth[i];
         tooth.x += tooth.vx * deltaTime;
         tooth.y += tooth.vy * deltaTime;
         tooth.spin += tooth.spinSpeed * deltaTime;
         
         let hitByFireball = false;
-        fireballs.forEach((fb, fbIndex) => {
+        for (let fbIndex = fireballs.length - 1; fbIndex >= 0; fbIndex--) {
+            const fb = fireballs[fbIndex];
             const dist = Math.hypot(fb.x - tooth.x, fb.y - tooth.y);
             if (dist < fb.size) {
                 teeth.splice(i, 1);
                 if (navigator.vibrate) navigator.vibrate(100);
                 hitByFireball = true;
+                break;
             }
-        });
+        }
         
-        if (hitByFireball) return;
+        if (hitByFireball) continue;
         
-        let shieldRadius = 30;
-        let eagleCenterX = eagle.x + eagle.w/2;
-        let eagleCenterY = eagle.y + eagle.h/2;
+        const eagleCenterX = eagle.x + eagle.w/2;
+        const eagleCenterY = eagle.y + eagle.h/2;
         const dist = Math.hypot(eagleCenterX - tooth.x, eagleCenterY - tooth.y);
+        const shieldRadius = 30;
         
         if (eagle.shieldActive && dist < shieldRadius) {
             teeth.splice(i, 1);
         } else if (!eagle.shieldActive && dist < 20) {
             gameOver();
+            return;
         }
         
         if (tooth.x < -50) teeth.splice(i, 1);
-    });
+    }
     
     planets.forEach(p => p.angle += p.speed * deltaTime);
     snow.forEach(p => { 
@@ -1044,8 +985,8 @@ function draw() {
     
     ctx.globalAlpha = 0.3;
     planets.forEach(p => {
-        let x = p.centerX + Math.cos(p.angle) * p.radius;
-        let y = p.centerY + Math.sin(p.angle) * p.radius;
+        const x = p.centerX + Math.cos(p.angle) * p.radius;
+        const y = p.centerY + Math.sin(p.angle) * p.radius;
         ctx.font = `${p.size}px serif`; 
         ctx.fillText(p.icon, x, y);
     });
@@ -1060,7 +1001,8 @@ function draw() {
         ctx.strokeRect(b.x, b.y, b.width, b.height);
         
         ctx.fillStyle = "#000000";
-        for(let row = 1; row < Math.floor(b.height / 20); row++) {
+        const rows = Math.floor(b.height / 20);
+        for(let row = 1; row < rows; row++) {
             for(let col = 0; col < 2; col++) {
                 ctx.fillRect(b.x + 10 + col * 25, b.y + row * 20, 12, 15);
             }
@@ -1079,9 +1021,10 @@ function draw() {
             
             ctx.strokeStyle = "#cc00cc";
             ctx.lineWidth = 2;
-            for(let y = 0; y < topHeight; y += 15) {
-                for(let x = 0; x < chimney.width; x += 25) {
-                    ctx.strokeRect(chimney.x + x, y, 25, 15);
+            const ySteps = Math.ceil(topHeight / 15);
+            for(let y = 0; y < ySteps; y++) {
+                for(let x = 0; x < 2; x++) {
+                    ctx.strokeRect(chimney.x + x * 25, y * 15, 25, 15);
                 }
             }
             
@@ -1095,9 +1038,10 @@ function draw() {
             
             ctx.strokeStyle = "#cc00cc";
             ctx.lineWidth = 2;
-            for(let y = bottomY; y < canvas.height; y += 15) {
-                for(let x = 0; x < chimney.width; x += 25) {
-                    ctx.strokeRect(chimney.x + x, y, 25, 15);
+            const ySteps = Math.ceil(bottomHeight / 15);
+            for(let y = 0; y < ySteps; y++) {
+                for(let x = 0; x < 2; x++) {
+                    ctx.strokeRect(chimney.x + x * 25, bottomY + y * 15, 25, 15);
                 }
             }
             
@@ -1223,7 +1167,7 @@ function draw() {
     ctx.save(); 
     ctx.translate(eagle.x + eagle.w / 2, eagle.y + eagle.h / 2);
     ctx.rotate(eagle.rotation);
-    ctx.scale(0.975, 0.975); // 30% bigger than original 0.75
+    ctx.scale(0.975, 0.975);
     
     ctx.shadowBlur = 35;
     ctx.shadowColor = "#FFD700";
@@ -1235,69 +1179,62 @@ function draw() {
         
     ctx.filter = 'brightness(1.1) contrast(1.2)';
 
-    // Body (streamlined horizontal oval - compact for pipelines) - 30% increase
     ctx.beginPath();
-    ctx.ellipse(0, 0, 18.2, 10.4, 0, 0, Math.PI * 2); // 14*1.3=18.2, 8*1.3=10.4
-    ctx.fillStyle = '#DC143C'; // Crimson red
+    ctx.ellipse(0, 0, 18.2, 10.4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#DC143C';
     ctx.fill();
-    ctx.strokeStyle = '#8B0000'; // Dark red outline
-    ctx.lineWidth = 1.95; // 1.5*1.3
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 1.95;
     ctx.stroke();
 
-    // Head (proportional circle at front) - 30% increase
     ctx.beginPath();
-    ctx.arc(15.6, 0, 10.4, 0, Math.PI * 2); // 12*1.3=15.6, 8*1.3=10.4
-    ctx.fillStyle = '#DC143C'; // Same red
+    ctx.arc(15.6, 0, 10.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#DC143C';
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
     ctx.stroke();
 
-    // Beak (pointing right - golden/orange) - 30% increase
     ctx.beginPath();
-    ctx.moveTo(23.4, 0); // 18*1.3
-    ctx.lineTo(31.2, -3.25); // 24*1.3, -2.5*1.3
+    ctx.moveTo(23.4, 0);
+    ctx.lineTo(31.2, -3.25);
     ctx.lineTo(31.2, 3.25);
     ctx.closePath();
-    ctx.fillStyle = '#FF8C00'; // Orange beak
+    ctx.fillStyle = '#FF8C00';
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 1.3; // 1*1.3
+    ctx.lineWidth = 1.3;
     ctx.stroke();
 
-    // Eye - big and white with black pupil - 30% increase
     ctx.beginPath();
-    ctx.arc(18.2, -1.95, 5.85, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 4.5*1.3
+    ctx.arc(18.2, -1.95, 5.85, 0, Math.PI * 2);
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 0.65; // 0.5*1.3
+    ctx.lineWidth = 0.65;
     ctx.stroke();
 
-    // Pupil - 30% increase
     ctx.beginPath();
-    ctx.arc(18.2, -1.95, 2.6, 0, Math.PI * 2); // 14*1.3, -1.5*1.3, 2*1.3
+    ctx.arc(18.2, -1.95, 2.6, 0, Math.PI * 2);
     ctx.fillStyle = '#000';
     ctx.fill();
 
-    // Tail feathers (sleek, flowing back) - 30% increase
     ctx.beginPath();
-    ctx.moveTo(-18.2, 0); // -14*1.3
-    ctx.lineTo(-26, -6.5); // -20*1.3, -5*1.3
-    ctx.lineTo(-23.4, 0); // -18*1.3
-    ctx.lineTo(-26, 6.5); // -20*1.3, 5*1.3
+    ctx.moveTo(-18.2, 0);
+    ctx.lineTo(-26, -6.5);
+    ctx.lineTo(-23.4, 0);
+    ctx.lineTo(-26, 6.5);
     ctx.closePath();
-    ctx.fillStyle = '#B22222'; // Darker red for tail
+    ctx.fillStyle = '#B22222';
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
     ctx.stroke();
 
-    // Small wing accent (single top wing for detail) - 30% increase
     ctx.beginPath();
-    ctx.ellipse(0, -7.8, 6.5, 3.9, -0.2, 0, Math.PI * 2); // 0, -6*1.3, 5*1.3, 3*1.3
-    ctx.fillStyle = '#B22222'; // Darker red
+    ctx.ellipse(0, -7.8, 6.5, 3.9, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#B22222';
     ctx.fill();
     ctx.strokeStyle = '#8B0000';
-    ctx.lineWidth = 1.04; // 0.8*1.3
+    ctx.lineWidth = 1.04;
     ctx.stroke();
 
     ctx.restore();
@@ -1337,7 +1274,7 @@ function draw() {
         if (d.isFiring) {
             ctx.save(); 
             ctx.translate(d.x, d.y + d.h - 15);
-            let flick = 2.2 + Math.sin(frameCount * 0.8) * 0.4;
+            const flick = 2.2 + Math.sin(frameCount * 0.8) * 0.4;
             ctx.scale(flick, 1.2); 
             ctx.font = "24px serif"; 
             ctx.textAlign = "right";
@@ -1374,7 +1311,7 @@ function animate() {
     
     const currentTime = performance.now();
     const rawDelta = (currentTime - lastFrameTime) / 16.67;
-    deltaTime = Math.min(rawDelta, 2);
+    deltaTime = Math.min(rawDelta, 3); // Increased cap from 2 to 3 for better stability
     lastFrameTime = currentTime;
     
     update(); 
@@ -1427,6 +1364,5 @@ function gameOver() {
     
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     
-    // Play sound at the end for better sync
     playGameOverSound();
 }
